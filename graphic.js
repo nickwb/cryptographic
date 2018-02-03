@@ -24,6 +24,7 @@
         3: [ 0.3, 0.55, 0.75 ]
     };
 
+    // Insert the SVG element
     let svg = d3.select('#graphic')
                 .append('svg')
                 .attr('width', width)
@@ -41,10 +42,10 @@
 
     function enrichData(data)
     {
-        // Sort currencies by category and age
+        // Sort currencies by age
         data.sort(sortCurrencies);
         
-        // Total Market Cap and 30 Day Volume
+        // Maximum Total Market Cap and 30 Day Volume
         let maxCap = d3.max(data, x => x.cap);
         let maxVol = d3.max(data, x => x.vol);
 
@@ -94,8 +95,8 @@
         }, {});
 
         // Divide the total circle based on the number of currencies in each category
-        // Giving a little bit of room for the year legend
-        // and ignoring BTC because it's special
+        // Giving a little bit of extra room for the year legend
+        // and ignoring BTC because it isn't in a category
         let perBubble = ((2 * Math.PI) - yearClearance) / (data.length - 1);
         let angle = rotationOffset;
 
@@ -118,6 +119,7 @@
             .domain([years[0], years[years.length - 1]])
             .range([minRing, maxRing]);
 
+        // Draw the year rings and legend
         drawYears(years);
 
         // Map the overall score to a bubble size
@@ -125,7 +127,7 @@
             .domain([0, 1])
             .range([minBubble, maxBubble]);
 
-        // Map the overall scope to text size
+        // Map the overall score to text size
         textScale = d3.scaleLinear()
             .domain([0, 1])
             .range([minFont, maxFont]);
@@ -213,42 +215,53 @@
     {
         let yearRadius = yearScale(currency.year);
         
+        // Calculate the position of the bubble
         let bubbleX = midX + (yearRadius * Math.cos(angle)),
             bubbleY = midY + (yearRadius * Math.sin(angle));
 
+        // BTC always in the centre...
         if(currency.code === btc.code) {
             bubbleX = midX;
             bubbleY = midY;
         }
 
+        // Calculate the radius of the bubble based on the overall score
         let bubbleRadius = bubbleScale(currency.overall);
 
+        // Draw the white background of the bubble
         let background = svg.append('circle')
             .attr('cx', bubbleX)
             .attr('cy', bubbleY)
             .attr('r', bubbleRadius)
             .attr('class', 'c-background');
 
+        // Draw the Market Cap and Trading Volume Arcs
         drawScoreArc(bubbleX, bubbleY, bubbleRadius, currency.capScore, 'right', 'c-cap-arc');
         drawScoreArc(bubbleX, bubbleY, bubbleRadius, currency.volScore, 'left', 'c-vol-arc');
 
+        // Draw the outline of the bubble
         let outline = svg.append('circle')
             .attr('cx', bubbleX)
             .attr('cy', bubbleY)
             .attr('r', bubbleRadius)
             .attr('class', 'c-outline');
         
+        // Calculate the font size based on the overall score
         let fontSize = textScale(currency.overall);
 
+        // A scale for laying out lines of text vertically through the bubble
+        // 0: Top of the bubble; 1: Bottom of the bubble.
         let textLayout = d3.scaleLinear()
-                            .domain([0, 1])
-                            .range([bubbleY - bubbleRadius, bubbleY + bubbleRadius]);
+            .domain([0, 1])
+            .range([bubbleY - bubbleRadius, bubbleY + bubbleRadius]);
 
+        // Work out how many lines of text to draw
         let nameParts = currency.name.split(' ');
         let noName = (currency.code === currency.name.toUpperCase() || bubbleRadius < 18);
         let lineCount = noName ? 1 : nameParts.length + 1;
         let lineLayout = (i) => textLayout(textLayoutMap[lineCount][i]);
 
+        // Draw the currency code
         let code = svg.append('text')
             .text(currency.code)
             .attr('x', bubbleX)
@@ -257,6 +270,7 @@
             .attr('class', 'c-code');
         
         if(!noName) {
+            // Draw the first line of the name
             let name1 = svg.append('text')
                 .text(nameParts[0])
                 .attr('x', bubbleX)
@@ -264,6 +278,7 @@
                 .style('font-size', fontSize * 0.8)
                 .attr('class', 'c-name');
 
+            // Draw the second line of the name if it exists
             if(nameParts.length > 1) {
                 let name2 = svg.append('text')
                 .text(nameParts[1])
@@ -307,7 +322,6 @@
         };
     }).then(data => {
         enrichData(data);
-        console.log(data);
         drawGraphic(data);
     });
 
