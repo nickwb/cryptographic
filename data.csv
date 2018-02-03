@@ -1,0 +1,23 @@
+﻿Code,Name,Inception,Category,Type,Market Cap,30 Day Trade Volume,Hard-Fork Of,Similar To
+BTC,Bitcoin,2009,,coin," 148,193,692,888 ","373,448,457,216",,
+NMC,Namecoin,2011,overlay,coin," 41,891,754 ","24,123,671",,
+LTC,Litecoin,2011,simple,coin," 7,173,044,490 ","22,892,357,696",,DOGE
+XRP,Ripple,2012,interoperability,unmined-coin," 33,894,639,531 ","90,704,588,928",,
+DOGE,Dogecoin,2013,simple,coin," 505,877,391 ","2,011,507,837",,LTC
+ETH,Ethereum,2014,smart-contracts,coin," 89,206,119,323 ","155,878,543,872",,
+OMNI,Omni,2014,smart-contracts,coin," 21,764,873 ","38,291,198",,
+DASH,Dash,2014,privacy,coin," 4,640,544,603 ","4,600,079,760",,
+XMR,Monero,2014,privacy,coin," 3,753,764,225 ","4,982,431,912",,
+SC,Siacoin,2015,overlay,coin," 861,281,056 ","3,381,221,442",,
+USDT,Tether,2015,interoperability,token," 2,215,801,660 ","92,377,441,024",,
+XEM,NEM,2015,simple,unmined-coin," 5,194,079,999 ","2,862,932,476",,
+IOTA,IOTA,2015,simple,unmined-coin," 4,983,058,505 ","4,064,511,908",,
+ETC,Ethereum Classic,2016,smart-contracts,coin," 2,275,948,925 ","13,557,783,352",ETH,
+QTUM,Qtum,2016,smart-contracts,unmined-coin," 2,167,494,717 ","23,498,241,120",,
+XLM,Stellar,2016,interoperability,unmined-coin," 7,214,094,499 ","9,874,865,704",,
+ZEC,Zcash,2016,privacy,coin," 1,214,200,204 ","4,592,566,872",,XZC
+XZC,Zcoin,2016,privacy,coin," 221,798,446 ","249,168,364",,ZEC
+ADA,Cardano,2017,smart-contracts,unmined-coin," 9,663,485,877 ","17,394,786,912",,NEO
+NEO,Neo,2017,smart-contracts,unmined-coin," 7,709,390,000 ","14,988,863,168",,ADA
+BCH,Bitcoin Cash,2017,simple,coin," 20,122,027,972 ","31,071,846,528",BTC,BCG
+BCG,Bitcoin Gold,2017,simple,coin," 1,816,265,962 ","8,174,951,632",BTC,BCH

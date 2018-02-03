@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+    <title>Cryptocurrency Visualisation</title>
+
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://d3js.org/d3-dsv.v1.min.js"></script>
+    <script src="https://d3js.org/d3-fetch.v1.min.js"></script>
+	<style>
+		#graphic {
+		  overflow: hidden;
+		  margin: 0;
+		  font-size: 14px;
+		  font-family: "Segoe UI";
+		}
+
+        #graphic svg {
+            background-color: #f7f7f9;
+        }
+
+        #graphic .year-ring {
+            stroke-width: 1px;
+            stroke: #000;
+            fill: none;
+        }
+
+        #graphic .currency {
+            stroke-width: 1px;
+            stroke: #000;
+            fill: #fff;
+        }
+
+        #graphic .c-code {
+            font-weight: bold;
+            text-anchor: middle;
+            alignment-baseline: central;
+        }
+
+        #graphic .c-name {
+            text-anchor: middle;
+            alignment-baseline: central;
+        }
+	</style>
+  </head>
+  <body>
+
+    <div id="graphic">
+    </div>
+	
+    <script type="text/javascript" src="graphic.js"></script>
+
+  </body>
+</html>
