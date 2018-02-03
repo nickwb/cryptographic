@@ -14,8 +14,7 @@
     let minRing = maxBubble*2, maxRing = (Math.min(width, height) / 2) - maxBubble;
 
     // Fixed rotation offset to give some clearance to the labels
-    let rotationOffset = Math.PI / 7;
-    //let rotationOffset = 0;
+    let yearClearance = Math.PI / 16, rotationOffset = yearClearance / 2;
 
     // How is text positioned in the vertical axis
     // given the number of lines in the currency bubble
@@ -36,19 +35,9 @@
 
     function sortCurrencies(a, b)
     {
-        if(a.code === b.code) {
-            return 0;
-        }
-
-        if(a.category !== b.category) {
-            return a.category < b.category ? -1 : 1;
-        }
-
-        let ageSort = (a.year < b.year) ? -1 : 1;
-        return ageSort;
+        if(a.year === b.year) return 0;
+        return (a.year < b.year) ? -1 : 1;
     }
-
-    let formatNumber = d3.format(',.0f');
 
     function enrichData(data)
     {
@@ -93,8 +82,34 @@
 
     function drawGraphic(data)
     {
+        // Single out bitcoin, because it's in the center and treated slightly different
         btc = data.find(x => x.code === 'BTC');
 
+        // Group the currencies by category
+        let byCategory = data.reduce((memo, val) => { 
+            if(val.code === btc.code) return memo;
+            memo[val.category] = memo[val.category] || [];
+            memo[val.category].push(val);
+            return memo;
+        }, {});
+
+        // Divide the total circle based on the number of currencies in each category
+        // Giving a little bit of room for the year legend
+        // and ignoring BTC because it's special
+        let perBubble = ((2 * Math.PI) - yearClearance) / (data.length - 1);
+        let angle = rotationOffset;
+
+        // Build the arcs for each category
+        for(let c in byCategory) {
+            let cat = byCategory[c];
+            cat.category = c;
+            cat.startAngle = angle;
+            cat.endAngle = angle + (perBubble * cat.length);
+            drawCategoryArc(cat);
+            angle = cat.endAngle;
+        }
+
+        // How many distinct years are there?
         let years = [...new Set(data.filter(x => x.code !== btc.code).map(x => x.year))];
         years.sort();
 
@@ -115,18 +130,27 @@
             .domain([0, 1])
             .range([minFont, maxFont]);
 
-        // Divide the total circle (but BTC doesn't need any space)
-        let perBubble = (2 * Math.PI) / (data.length - 1);
-        let angle = rotationOffset;
+        // Draw the Bitcoin Bubble (ha!)
+        drawBubble(btc, 0);
+        
+        // Draw the bubbles within each category
+        for(let c in byCategory) {
+            drawCategoryBubbles(byCategory[c]);            
+        }
+    }
 
-        data.forEach(c => {
-            drawBubble(c, angle);
+    function drawCategoryArc(cat)
+    {
+        let catArc = d3.arc()
+            .innerRadius(0)
+            .outerRadius(maxRing + 2*maxBubble)
+            .startAngle((Math.PI / 2) - cat.startAngle)
+            .endAngle((Math.PI / 2) - cat.endAngle);
 
-            // Bitcoin doesn't take up any angular space
-            if(c.code !== btc.code) {
-                angle += perBubble;
-            }
-        });
+        let catArcPath = svg.append('path')
+            .attr('d', catArc())
+            .attr('transform', `translate(${midX} ${midY})`)
+            .attr('class', `category category-${cat.category}`);
     }
 
     function drawYears(years)
@@ -140,7 +164,7 @@
                .attr('class', 'year-ring');
         });
         
-        // Disrupt the rings briefly so the years are easier to read
+        // Disrupt the rings briefly so the year labels are easier to read
         svg.append('rect')
            .attr('width', midX)
            .attr('height', minBubble * 2)
@@ -164,6 +188,47 @@
             .attr('y', midY)
             .text('Inception')
             .attr('class', 'year-caption');
+    }
+
+    function drawCategoryBubbles(cat)
+    {
+        // How much space do we have for this category?
+        let sweep = cat.endAngle - cat.startAngle;
+        let minAngle = cat.startAngle;
+        let maxAngle = cat.startAngle + sweep;
+        console.log(`${cat.category} min: ${minAngle} max: ${maxAngle} sweep: ${sweep}`);
+
+        // Group the currencies in to years
+        let catByYears = cat.reduce((memo, currency) => {
+            memo[currency.year] = memo[currency.year] || [];
+            memo[currency.year].push(currency);
+            return memo;
+        }, {});
+
+        let catYears = Object.keys(catByYears);
+        catYears.sort();
+
+        let groupIndex = 0;
+
+        catYears.forEach(y => {
+            let stripe = groupIndex % 4;
+            let extraMember = groupIndex % 2;
+
+            let members = catByYears[y];
+            let division = sweep / (members.length + extraMember);
+            let angle = minAngle;
+
+            if(stripe == 1) { angle += division; }
+
+            members.forEach(currency => {
+                drawBubble(currency, (angle + 0.5*division) * -1);
+                angle += division;
+            });
+
+            if(stripe == 3) { angle += division; }
+
+            groupIndex++;
+        });
     }
 
     function drawBubble(currency, angle)
