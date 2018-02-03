@@ -11,7 +11,11 @@
     let minFont = 10, maxFont = 20;
 
     // Year ring radius
-    let minRing = maxBubble*2, maxRing = (Math.min(width, height) / 2) - (maxBubble / 2);
+    let minRing = maxBubble*2, maxRing = (Math.min(width, height) / 2) - maxBubble;
+
+    // Fixed rotation offset to give some clearance to the labels
+    let rotationOffset = Math.PI / 7;
+    //let rotationOffset = 0;
 
     // How is text positioned in the vertical axis
     // given the number of lines in the currency bubble
@@ -99,6 +103,7 @@
             .domain([years[0], years[years.length - 1]])
             .range([minRing, maxRing]);
 
+        // Draw the year rings
         years.forEach(y => {
             svg.append('circle')
                .attr('cx', midX)
@@ -107,6 +112,24 @@
                .attr('class', 'year-ring');
         });
         
+        // Disrupt the rings briefly so the years are easier to read
+        svg.append('rect')
+           .attr('width', midX)
+           .attr('height', minBubble * 2)
+           .attr('x', midX)
+           .attr('y', midY - minBubble)
+           .attr('class', 'year-clearance');
+
+        // Draw the year labels
+        years.forEach(y => {
+            svg.append('text')
+               .attr('x', midX + yearScale(y))
+               .attr('y', midY)
+               .text(y)
+               .attr('class', 'year-label');
+        });
+           
+
         // Map the overall score to a bubble size
         bubbleScale = d3.scaleLinear()
             .domain([0, 1])
@@ -117,13 +140,17 @@
             .domain([0, 1])
             .range([minFont, maxFont]);
 
-        // Divide the total circle 
-        let perBubble = (2 * Math.PI) / data.length;
-        let angle = 0;
+        // Divide the total circle (but BTC doesn't need any space)
+        let perBubble = (2 * Math.PI) / (data.length - 1);
+        let angle = rotationOffset;
 
         data.forEach(c => {
             drawBubble(c, angle);
-            angle += perBubble;
+
+            // Bitcoin doesn't take up any angular space
+            if(c.code !== btc.code) {
+                angle += perBubble;
+            }
         });
     }
 
@@ -131,8 +158,8 @@
     {
         let yearRadius = yearScale(currency.year);
         
-        let bubbleX = midX + yearRadius * Math.cos(angle),
-            bubbleY = midY + yearRadius * Math.sin(angle);
+        let bubbleX = midX + (yearRadius * Math.cos(angle)),
+            bubbleY = midY + (yearRadius * Math.sin(angle));
 
         if(currency.code === btc.code) {
             bubbleX = midX;
@@ -179,7 +206,7 @@
                 .text(nameParts[0])
                 .attr('x', bubbleX)
                 .attr('y', lineLayout(1))
-                .style('font-size', fontSize * 0.9)
+                .style('font-size', fontSize * 0.8)
                 .attr('class', 'c-name');
 
             if(nameParts.length > 1) {
@@ -187,7 +214,7 @@
                 .text(nameParts[1])
                 .attr('x', bubbleX)
                 .attr('y', lineLayout(2))
-                .style('font-size', fontSize * 0.9)
+                .style('font-size', fontSize * 0.8)
                 .attr('class', 'c-name');
             }
         }
