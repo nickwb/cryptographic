@@ -52,25 +52,33 @@
         data.sort(sortCurrencies);
         
         // Total Market Cap and 30 Day Volume
-        let allCap = d3.sum(data, x => x.cap);
-        let allVol = d3.sum(data, x => x.vol);
+        let maxCap = d3.max(data, x => x.cap);
+        let maxVol = d3.max(data, x => x.vol);
 
         // Calculate the percentage of the total cap, and total volume
         data.forEach(x => {
-            x.capPercent = (x.cap / allCap);
-            x.volPercent = (x.vol / allVol);
-            // Calculate "activity" as a 2:1 ratio of cap:vol
-            x.activity = (2 * x.capPercent) + x.volPercent;
+            x.capScore = (x.cap / maxCap);
+            x.volScore = (x.vol / maxVol);
+            // Calculate "overall" as a 2:1 ratio of cap:vol
+            x.overall = (2 * x.capScore) + x.volScore;            
         });
 
-        // Re-map the activity using a log scale
-        let activityScale = d3.scaleLog()
+        // Re-map using a log scale
+        let overallScale = d3.scaleLog()
             .base(1.1)
-            .domain([d3.min(data, x => x.activity), d3.max(data, x => x.activity)])
+            .domain([d3.min(data, x => x.overall), d3.max(data, x => x.overall)])
+            .range([0, 1]);
+
+        let scoreScale = d3.scaleLog()
+            .base(1.1)
+            .clamp(true)
+            .domain([0.01, 1])
             .range([0, 1]);
 
         data.forEach(x => {
-            x.activity = activityScale(x.activity);
+            x.capScore = scoreScale(x.capScore);
+            x.volScore = scoreScale(x.volScore);
+            x.overall = overallScale(x.overall);
         });
     }
 
@@ -99,12 +107,12 @@
                .attr('class', 'year-ring');
         });
         
-        // Map the activity to a bubble size
+        // Map the overall score to a bubble size
         bubbleScale = d3.scaleLinear()
             .domain([0, 1])
             .range([minBubble, maxBubble]);
 
-        // Map the activity to text size
+        // Map the overall scope to text size
         textScale = d3.scaleLinear()
             .domain([0, 1])
             .range([minFont, maxFont]);
@@ -131,15 +139,24 @@
             bubbleY = midY;
         }
 
-        let bubbleRadius = bubbleScale(currency.activity);
+        let bubbleRadius = bubbleScale(currency.overall);
 
-        let bubble = svg.append('circle')
+        let background = svg.append('circle')
             .attr('cx', bubbleX)
             .attr('cy', bubbleY)
             .attr('r', bubbleRadius)
-            .attr('class', 'currency');
+            .attr('class', 'c-background');
+
+        drawScoreArc(bubbleX, bubbleY, bubbleRadius, currency.capScore, 'right', 'c-cap-arc');
+        drawScoreArc(bubbleX, bubbleY, bubbleRadius, currency.volScore, 'left', 'c-vol-arc');
+
+        let outline = svg.append('circle')
+            .attr('cx', bubbleX)
+            .attr('cy', bubbleY)
+            .attr('r', bubbleRadius)
+            .attr('class', 'c-outline');
         
-        let fontSize = textScale(currency.activity);
+        let fontSize = textScale(currency.overall);
 
         let textLayout = d3.scaleLinear()
                             .domain([0, 1])
@@ -176,6 +193,24 @@
         }
     }
 
+    function drawScoreArc(bubbleX, bubbleY, bubbleRadius, score, direction, klass)
+    {
+        var arcLength = (Math.PI * score);
+
+        arcLength = (direction == 'right') ? -arcLength : arcLength;
+
+        let capArc = d3.arc()
+            .innerRadius(0.85 * bubbleRadius)
+            .outerRadius(bubbleRadius)
+            .startAngle(Math.PI)
+            .endAngle(Math.PI + arcLength);
+
+        let capArcPath = svg.append('path')
+            .attr('d', capArc())
+            .attr('transform', `translate(${bubbleX} ${bubbleY})`)
+            .attr('class', klass);
+    }
+
     d3.csv('data.csv', row => {
         return {
             code: row.Code,
@@ -190,6 +225,7 @@
         };
     }).then(data => {
         enrichData(data);
+        console.log(data);
         drawGraphic(data);
     });
 
