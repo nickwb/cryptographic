@@ -194,40 +194,18 @@
     {
         // How much space do we have for this category?
         let sweep = cat.endAngle - cat.startAngle;
-        let minAngle = cat.startAngle;
-        let maxAngle = cat.startAngle + sweep;
-        console.log(`${cat.category} min: ${minAngle} max: ${maxAngle} sweep: ${sweep}`);
+        let minAngle = cat.startAngle + sweep * 0.1;
+        let maxAngle = cat.endAngle - sweep * 0.1;
+        sweep = sweep * 0.8;
 
-        // Group the currencies in to years
-        let catByYears = cat.reduce((memo, currency) => {
-            memo[currency.year] = memo[currency.year] || [];
-            memo[currency.year].push(currency);
-            return memo;
-        }, {});
+        let perBubble = sweep / cat.length;
 
-        let catYears = Object.keys(catByYears);
-        catYears.sort();
+        let i = 0;
 
-        let groupIndex = 0;
-
-        catYears.forEach(y => {
-            let stripe = groupIndex % 4;
-            let extraMember = groupIndex % 2;
-
-            let members = catByYears[y];
-            let division = sweep / (members.length + extraMember);
-            let angle = minAngle;
-
-            if(stripe == 1) { angle += division; }
-
-            members.forEach(currency => {
-                drawBubble(currency, (angle + 0.5*division) * -1);
-                angle += division;
-            });
-
-            if(stripe == 3) { angle += division; }
-
-            groupIndex++;
+        cat.forEach(currency => {
+            let angle = minAngle + (i * perBubble) + 0.5*perBubble;
+            drawBubble(currency, -angle);
+            i++;
         });
     }
 
