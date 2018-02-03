@@ -103,32 +103,7 @@
             .domain([years[0], years[years.length - 1]])
             .range([minRing, maxRing]);
 
-        // Draw the year rings
-        years.forEach(y => {
-            svg.append('circle')
-               .attr('cx', midX)
-               .attr('cy', midY)
-               .attr('r', yearScale(y))
-               .attr('class', 'year-ring');
-        });
-        
-        // Disrupt the rings briefly so the years are easier to read
-        svg.append('rect')
-           .attr('width', midX)
-           .attr('height', minBubble * 2)
-           .attr('x', midX)
-           .attr('y', midY - minBubble)
-           .attr('class', 'year-clearance');
-
-        // Draw the year labels
-        years.forEach(y => {
-            svg.append('text')
-               .attr('x', midX + yearScale(y))
-               .attr('y', midY)
-               .text(y)
-               .attr('class', 'year-label');
-        });
-           
+        drawYears(years);
 
         // Map the overall score to a bubble size
         bubbleScale = d3.scaleLinear()
@@ -152,6 +127,43 @@
                 angle += perBubble;
             }
         });
+    }
+
+    function drawYears(years)
+    {
+        // Draw the year rings
+        years.forEach(y => {
+            svg.append('circle')
+               .attr('cx', midX)
+               .attr('cy', midY)
+               .attr('r', yearScale(y))
+               .attr('class', 'year-ring');
+        });
+        
+        // Disrupt the rings briefly so the years are easier to read
+        svg.append('rect')
+           .attr('width', midX)
+           .attr('height', minBubble * 2)
+           .attr('x', midX)
+           .attr('y', midY - minBubble)
+           .attr('class', 'year-clearance');
+
+        // Draw the year labels
+        let lastX = 0;
+        years.forEach(y => {
+            lastX = midX + yearScale(y);
+            svg.append('text')
+               .attr('x', lastX)
+               .attr('y', midY)
+               .text(y)
+               .attr('class', 'year-label');
+        });
+
+        svg.append('text')
+            .attr('x', lastX + 50)
+            .attr('y', midY)
+            .text('Inception')
+            .attr('class', 'year-caption');
     }
 
     function drawBubble(currency, angle)
