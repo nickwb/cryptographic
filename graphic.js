@@ -27,6 +27,9 @@
     };
 
     let layoutIterations = 5;
+    let influenceRadius = maxBubble * 6;
+    let adjustmentSpeed = 50, maxAdjustment = maxBubble;
+    let clearZone = 0.1;
 
     // Insert the SVG element
     let svg = d3.select('#graphic')
@@ -204,8 +207,8 @@
         let sweep = cat.endAngle - cat.startAngle;
 
         // Leave some space along the edge of the arc
-        let minAngle = cat.startAngle + (sweep * 0.1);
-        let maxAngle = cat.endAngle - (sweep * 0.1);
+        let minAngle = cat.startAngle + (sweep * clearZone);
+        let maxAngle = cat.endAngle - (sweep * clearZone);
         sweep = maxAngle - minAngle;
 
         console.log(`Min: ${toDegrees(minAngle)}, Max: ${toDegrees(maxAngle)}`);
@@ -234,14 +237,11 @@
         });
 
         for(i = 0; i < layoutIterations; i++) {
-        //for(i = 0; i < 0; i++) {
             let learningRate = 1 - (i/layoutIterations);
             console.log(`Learning Rate: ${learningRate}`);
             shove.forEach(x => {
                 // You can't move the edges, only the currencies
                 if(!x.thing.isEdge) {
-                    console.log(`Moving ${x.thing.code}`);
-
                     // We will only move the bubble forwards and backwards
                     // perpendicular to its radial position
                     let attack = fromPolar([1, x.polar[1] + rightAngle]);
@@ -256,14 +256,12 @@
 
                     // Clamp the maximum movement
                     force = toPolar(force);
-                    if(force[0] > maxBubble) {
-                        force[0] = maxBubble;
+                    if(force[0] > maxAdjustment) {
+                        force[0] = maxAdjustment;
                     }
 
                     // Apply the learning rate
                     force[0] = force[0] * learningRate;
-
-                    console.log(`Net force: ${force[0]} ${toDegrees(force[1])}`);
 
                     x.step = fromPolar(force);
                 }
@@ -273,14 +271,9 @@
             shove.forEach(x => {
                 // You can't move the edges, only the currencies
                 if(!x.thing.isEdge) {
-                    let pStep = toPolar(x.step);
-                    console.log(`${x.thing.code} Step: ${pStep[0]} ${toDegrees(pStep[1])}`);
-
                     // Apply the step movement to the current position
                     let endPos = vectorAdd(x.step, x.cartesian);
-                    endPos = toPolar(endPos);
-
-                    console.log(`End Pos: ${endPos[0]} ${toDegrees(endPos[1])}`);
+                    endPos = normalisePolar(toPolar(endPos));
 
                     let angle = endPos[1];
                     if(angle > maxAngle) {
@@ -290,8 +283,6 @@
                         console.log(`Too short`);
                         angle = minAngle;
                     }
-
-                    console.log(`Moving to: ${angle}`);
 
                     // Take the angle (but not the radius) from the end position
                     x.setPolar(x.polar[0], angle);
@@ -331,7 +322,7 @@
             dist = toPolar(dist);
 
             // Too far away
-            if(dist[0] > 3*maxBubble) {
+            if(dist[0] > influenceRadius) {
                 return [0, 0];
             }
 
@@ -340,15 +331,11 @@
                 dist[0] = 1;
             }
 
-            //console.log(`Dist: ${dist[0]}, ${dist[1]}`);
-
-            let mass = this.getMassRelativeTo(other);
-            console.log(`Mass ${this.thing.code || 'Edge'}: ${mass.toFixed(0)}`);
-            //let mass = 100;
-            let factor = mass * 50;
+            let escape = this.getEscapeFactorFor(other);
+            escape = escape * adjustmentSpeed;
 
             // Use inverse squared distance for the force
-            let push = [factor/(dist[0] * dist[0]),  dist[1]];
+            let push = [escape/(dist[0] * dist[0]),  dist[1]];
             push = fromPolar(push);
             
             // Apply the force to the angle of attack
@@ -356,18 +343,16 @@
             push = toPolar(push);
 
             // Clamp to minimum and maximum force
-            if(push[0] > maxBubble) {
-                push[0] = maxBubble;
+            if(push[0] > maxAdjustment) {
+                push[0] = maxAdjustment;
             } else if (push[0] < 1) {
                 push[0] = 1;
             }
-            
-            console.log(`${this.thing.code || 'Edge'} Push: ${push[0]}, ${toDegrees(push[1])}`);
 
             return fromPolar(push);
         }
 
-        getMassRelativeTo(other) {
+        getEscapeFactorFor(other) {
             // I'm an edge, and I'm an immovable object
             if(this.thing.isEdge) {
                 return maxBubble * maxBubble;
@@ -377,15 +362,8 @@
                 throw 'This should never happen.';
             }
 
-            let netMass = getBubbleRadius(this.thing) + getBubbleRadius(other.thing);
-            return netMass * netMass;
-
-            // // We're both movable, so the bigger guy wins
-            // let myMass = getBubbleRadius(this.thing),
-            //     hisMass = getBubbleRadius(other.thing),
-            //     minMass = Math.min(hisMass, myMass);
-
-            // return (myMass - hisMass) + minMass;
+            let sum = getBubbleRadius(this.thing) + getBubbleRadius(other.thing);
+            return sum * sum;
         }
 
     }
@@ -411,6 +389,14 @@
     function toScreenSpace(vect, midPoint)
     {
         return vectorAdd(midPoint, [vect[0], -vect[1]]);
+    }
+
+    function normalisePolar(vect)
+    {
+        return [
+            vect[0],
+            vect[1] < 0 ? fullCircle + vect[1] : vect[1]
+        ];
     }
 
     function vectorAdd(a, b)
