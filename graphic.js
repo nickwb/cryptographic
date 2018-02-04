@@ -209,9 +209,10 @@
         let maxAngle = cat.endAngle - (sweep * clearZone);
         sweep = maxAngle - minAngle;
 
+        let midPoint = minAngle + 0.5 * sweep;
+
         let years = new Set();
-        let edge = { isEdge: true };
-        let shove = [];
+        let layout = [];
 
         // Choose some initial positions for the bubbles
         let perBubble = sweep / cat.length;
@@ -220,12 +221,16 @@
         cat.forEach(currency => {
             let radius = yearScale(currency.year);
             let angle = minAngle + (i * perBubble) + (perBubble / 2);
-            shove.push(new Arrangeable(currency, radius, angle));
+            layout.push(new Arrangeable(currency, radius, angle));
 
             // If we haven't seen this year before, add an edge on the ring
             if(!years.has(currency.year)) {
-                shove.push(new Arrangeable(edge, radius, minAngle));
-                shove.push(new Arrangeable(edge, radius, maxAngle));
+                let leadingEdge = { isEdge: true, key: 'Edge', criticalAngle: -midPoint }
+                layout.push(new Arrangeable(leadingEdge, radius, minAngle));
+
+                let trailingEdge = { isEdge: true, key: 'Edge', criticalAngle: midPoint }
+                layout.push(new Arrangeable(trailingEdge, radius, maxAngle));
+
                 years.add(currency.year);
             }
 
@@ -234,7 +239,7 @@
 
         for(i = 0; i < layoutIterations; i++) {
             let falloff = 1 - (i/layoutIterations);
-            shove.forEach(x => {
+            layout.forEach(x => {
                 // You can't move the edges, only the currencies
                 if(!x.thing.isEdge) {
                     // We will only move the bubble forwards and backwards
@@ -242,7 +247,7 @@
                     let attack = fromPolar([1, x.polar[1] + rightAngle]);
 
                     let force = [0, 0];
-                    shove.forEach(y => {
+                    layout.forEach(y => {
                         // I can't exert a force on myself
                         if(x.id !== y.id) {
                             force = vectorAdd(force, y.pushOther(x, attack));
@@ -263,7 +268,7 @@
             });
 
             // Let all of the steps resolve, then apply the movement
-            shove.forEach(x => {
+            layout.forEach(x => {
                 // You can't move the edges, only the currencies
                 if(!x.thing.isEdge) {
                     // Apply the step movement to the current position
@@ -285,7 +290,7 @@
             });
         }
 
-        shove.forEach(x => {
+        layout.forEach(x => {
             // You can't move the edges, only the currencies
             if(!x.thing.isEdge) {
                 console.log(`Final point: ${x.thing.code} ${toDegrees(x.polar[1])}`);
@@ -297,22 +302,29 @@
     class Arrangeable {
         constructor(thing, radius, angle) {
             this.id = Arrangeable.nextId++;
-            //console.log(`id: ${this.id}`);
             this.thing = thing;
             this.setPolar(radius, angle);
         }
 
         setPolar(radius, angle) {
             this.polar = [radius, angle];
-            this.cartesian = fromPolar(this.polar);
-        }
-
-        setCartesian(x, y) {
-            this.cartesian = [x, y];
-            this.polar = toPolar(this.cartesian);
+            this.cartesian = normalisePolar(fromPolar(this.polar));
         }
 
         pushOther(other, attack) {
+            // Ignore edges which are beyond the critical angle
+            if(this.thing.isEdge) {
+                let criticalAngle = this.thing.criticalAngle;
+
+                let shouldIgnore = (criticalAngle < 0 && other.polar[1] > -1 * criticalAngle)
+                                || (criticalAngle > 0 && other.polar[1] < criticalAngle);
+
+                if(shouldIgnore) {
+                    return [0, 0];
+                }
+            }
+
+            // How far away is the other item
             let dist = vectorMinus(other.cartesian, this.cartesian);
             dist = toPolar(dist);
 
@@ -348,9 +360,9 @@
         }
 
         getEscapeFactorFor(other) {
-            // I'm an edge, and I'm an immovable object
+            // I'm an edge
             if(this.thing.isEdge) {
-                return maxBubble * maxBubble;
+                return 0.5 * maxBubble * maxBubble;
             }
 
             if(other.thing.isEdge) {
@@ -503,6 +515,10 @@
 
     function drawScoreArc(bubbleX, bubbleY, bubbleRadius, score, direction, klass)
     {
+        if(score === 0) {
+            return;
+        }
+
         var arcLength = (halfCircle * score);
 
         arcLength = (direction == 'right') ? -arcLength : arcLength;
