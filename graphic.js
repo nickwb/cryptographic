@@ -43,6 +43,10 @@
 
     function sortCurrencies(a, b)
     {
+        if(a.category !== b.category) {
+            return a.category < b.category ? -1 : 1;
+        }
+
         if(a.year === b.year) return 0;
         return (a.year < b.year) ? -1 : 1;
     }
@@ -225,10 +229,10 @@
 
             // If we haven't seen this year before, add an edge on the ring
             if(!years.has(currency.year)) {
-                let leadingEdge = { isEdge: true, key: 'Edge', criticalAngle: -midPoint }
+                let leadingEdge = { isEdge: true, code: 'Leading Edge', criticalAngle: -midPoint }
                 layout.push(new Arrangeable(leadingEdge, radius, minAngle));
 
-                let trailingEdge = { isEdge: true, key: 'Edge', criticalAngle: midPoint }
+                let trailingEdge = { isEdge: true, code: 'Trailing Edge', criticalAngle: midPoint }
                 layout.push(new Arrangeable(trailingEdge, radius, maxAngle));
 
                 years.add(currency.year);
@@ -320,6 +324,7 @@
                                 || (criticalAngle > 0 && other.polar[1] < criticalAngle);
 
                 if(shouldIgnore) {
+                    console.log(`${this.thing.code} ignored for ${other.thing.code}.`)
                     return [0, 0];
                 }
             }
