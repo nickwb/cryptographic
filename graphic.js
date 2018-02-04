@@ -1,5 +1,7 @@
 (function(d3){
 
+    let rightAngle = Math.PI / 2, halfCircle = Math.PI, fullCircle = Math.PI * 2;
+
     // Canvas size
     let width = 1200, height = 900;
 
@@ -23,6 +25,8 @@
         2: [ 0.35, 0.6 ],
         3: [ 0.3, 0.55, 0.75 ]
     };
+
+    let layoutIterations = 5;
 
     // Insert the SVG element
     let svg = d3.select('#graphic')
@@ -97,7 +101,7 @@
         // Divide the total circle based on the number of currencies in each category
         // Giving a little bit of extra room for the year legend
         // and ignoring BTC because it isn't in a category
-        let perBubble = ((2 * Math.PI) - yearClearance) / (data.length - 1);
+        let perBubble = (fullCircle - yearClearance) / (data.length - 1);
         let angle = rotationOffset;
 
         // Build the arcs for each category
@@ -146,8 +150,8 @@
         let catArc = d3.arc()
             .innerRadius(0)
             .outerRadius(maxRing + 2*maxBubble)
-            .startAngle((Math.PI / 2) - cat.startAngle)
-            .endAngle((Math.PI / 2) - cat.endAngle);
+            .startAngle(rightAngle - cat.startAngle)
+            .endAngle(rightAngle - cat.endAngle);
 
         let catArcPath = svg.append('path')
             .attr('d', catArc())
@@ -194,30 +198,256 @@
 
     function drawCategoryBubbles(cat)
     {
+        console.log(`Start: ${toDegrees(cat.startAngle)}, End: ${toDegrees(cat.endAngle)}`);
+
         // How much space do we have for this category?
         let sweep = cat.endAngle - cat.startAngle;
-        let minAngle = cat.startAngle + sweep * 0.1;
-        let maxAngle = cat.endAngle - sweep * 0.1;
-        sweep = sweep * 0.8;
 
+        // Leave some space along the edge of the arc
+        let minAngle = cat.startAngle + (sweep * 0.1);
+        let maxAngle = cat.endAngle - (sweep * 0.1);
+        sweep = maxAngle - minAngle;
+
+        console.log(`Min: ${toDegrees(minAngle)}, Max: ${toDegrees(maxAngle)}`);
+
+        let years = new Set();
+        let edge = { isEdge: true };
+        let shove = [];
+
+        // Choose some initial positions for the bubbles
         let perBubble = sweep / cat.length;
-
         let i = 0;
 
         cat.forEach(currency => {
-            let angle = minAngle + (i * perBubble) + 0.5*perBubble;
-            drawBubble(currency, -angle);
+            let radius = yearScale(currency.year);
+            let angle = minAngle + (i * perBubble) + (perBubble / 2);
+            shove.push(new Arrangeable(currency, radius, angle));
+
+            // If we haven't seen this year before, add an edge on the ring
+            if(!years.has(currency.year)) {
+                shove.push(new Arrangeable(edge, radius, minAngle));
+                shove.push(new Arrangeable(edge, radius, maxAngle));
+                years.add(currency.year);
+            }
+
             i++;
         });
+
+        for(i = 0; i < layoutIterations; i++) {
+        //for(i = 0; i < 0; i++) {
+            let learningRate = 1 - (i/layoutIterations);
+            console.log(`Learning Rate: ${learningRate}`);
+            shove.forEach(x => {
+                // You can't move the edges, only the currencies
+                if(!x.thing.isEdge) {
+                    console.log(`Moving ${x.thing.code}`);
+
+                    // We will only move the bubble forwards and backwards
+                    // perpendicular to its radial position
+                    let attack = fromPolar([1, x.polar[1] + rightAngle]);
+
+                    let force = [0, 0];
+                    shove.forEach(y => {
+                        // I can't exert a force on myself
+                        if(x.id !== y.id) {
+                            force = vectorAdd(force, y.pushOther(x, attack));
+                        }
+                    });
+
+                    // Clamp the maximum movement
+                    force = toPolar(force);
+                    if(force[0] > maxBubble) {
+                        force[0] = maxBubble;
+                    }
+
+                    // Apply the learning rate
+                    force[0] = force[0] * learningRate;
+
+                    console.log(`Net force: ${force[0]} ${toDegrees(force[1])}`);
+
+                    x.step = fromPolar(force);
+                }
+            });
+
+            // Let all of the steps resolve, then apply the movement
+            shove.forEach(x => {
+                // You can't move the edges, only the currencies
+                if(!x.thing.isEdge) {
+                    let pStep = toPolar(x.step);
+                    console.log(`${x.thing.code} Step: ${pStep[0]} ${toDegrees(pStep[1])}`);
+
+                    // Apply the step movement to the current position
+                    let endPos = vectorAdd(x.step, x.cartesian);
+                    endPos = toPolar(endPos);
+
+                    console.log(`End Pos: ${endPos[0]} ${toDegrees(endPos[1])}`);
+
+                    let angle = endPos[1];
+                    if(angle > maxAngle) {
+                        console.log(`Too far`);
+                        angle = maxAngle;
+                    } else if (angle < minAngle) {
+                        console.log(`Too short`);
+                        angle = minAngle;
+                    }
+
+                    console.log(`Moving to: ${angle}`);
+
+                    // Take the angle (but not the radius) from the end position
+                    x.setPolar(x.polar[0], angle);
+                }
+            });
+        }
+
+        shove.forEach(x => {
+            // You can't move the edges, only the currencies
+            if(!x.thing.isEdge) {
+                console.log(`Final point: ${x.thing.code} ${toDegrees(x.polar[1])}`);
+                drawBubble(x.thing, x.polar[1]);
+            }
+        });
     }
+
+    class Arrangeable {
+        constructor(thing, radius, angle) {
+            this.id = Arrangeable.nextId++;
+            //console.log(`id: ${this.id}`);
+            this.thing = thing;
+            this.setPolar(radius, angle);
+        }
+
+        setPolar(radius, angle) {
+            this.polar = [radius, angle];
+            this.cartesian = fromPolar(this.polar);
+        }
+
+        setCartesian(x, y) {
+            this.cartesian = [x, y];
+            this.polar = toPolar(this.cartesian);
+        }
+
+        pushOther(other, attack) {
+            let dist = vectorMinus(other.cartesian, this.cartesian);
+            dist = toPolar(dist);
+
+            // Too far away
+            if(dist[0] > 3*maxBubble) {
+                return [0, 0];
+            }
+
+            // Clamp the minimum distance
+            if(dist[0] <= 1) {
+                dist[0] = 1;
+            }
+
+            //console.log(`Dist: ${dist[0]}, ${dist[1]}`);
+
+            let mass = this.getMassRelativeTo(other);
+            console.log(`Mass ${this.thing.code || 'Edge'}: ${mass.toFixed(0)}`);
+            //let mass = 100;
+            let factor = mass * 50;
+
+            // Use inverse squared distance for the force
+            let push = [factor/(dist[0] * dist[0]),  dist[1]];
+            push = fromPolar(push);
+            
+            // Apply the force to the angle of attack
+            push = vectorMultiply(attack, vectorDot(push, attack));
+            push = toPolar(push);
+
+            // Clamp to minimum and maximum force
+            if(push[0] > maxBubble) {
+                push[0] = maxBubble;
+            } else if (push[0] < 1) {
+                push[0] = 1;
+            }
+            
+            console.log(`${this.thing.code || 'Edge'} Push: ${push[0]}, ${toDegrees(push[1])}`);
+
+            return fromPolar(push);
+        }
+
+        getMassRelativeTo(other) {
+            // I'm an edge, and I'm an immovable object
+            if(this.thing.isEdge) {
+                return maxBubble * maxBubble;
+            }
+
+            if(other.thing.isEdge) {
+                throw 'This should never happen.';
+            }
+
+            let netMass = getBubbleRadius(this.thing) + getBubbleRadius(other.thing);
+            return netMass * netMass;
+
+            // // We're both movable, so the bigger guy wins
+            // let myMass = getBubbleRadius(this.thing),
+            //     hisMass = getBubbleRadius(other.thing),
+            //     minMass = Math.min(hisMass, myMass);
+
+            // return (myMass - hisMass) + minMass;
+        }
+
+    }
+
+    Arrangeable.nextId = 1;
+
+    function fromPolar(vect)
+    {
+        return [
+            (vect[0] * Math.cos(vect[1])),
+            (vect[0] * Math.sin(vect[1]))
+        ];
+    }
+
+    function toPolar(vect)
+    {
+        return [
+            Math.sqrt(vect[0]*vect[0] + vect[1]*vect[1]),
+            Math.atan2(vect[1], vect[0])
+        ];
+    }
+
+    function toScreenSpace(vect, midPoint)
+    {
+        return vectorAdd(midPoint, [vect[0], -vect[1]]);
+    }
+
+    function vectorAdd(a, b)
+    {
+        return [a[0] + b[0], a[1] + b[1]];
+    }
+
+    function vectorMinus(a, b)
+    {
+        return [a[0] - b[0], a[1] - b[1]];
+    }
+
+    function vectorMultiply(x, scalar)
+    {
+        return [x[0] * scalar, x[1] * scalar];
+    }
+
+    function vectorDot(a, b)
+    {
+        return (a[0] * b[0]) + (a[1] * b[1]);
+    }
+
+    function getBubbleRadius(currency) {
+        return bubbleScale(currency.overall);
+    }
+
+    function toDegrees (angle) {
+        return (angle * (180 / Math.PI)).toFixed(2);
+      }
 
     function drawBubble(currency, angle)
     {
         let yearRadius = yearScale(currency.year);
         
         // Calculate the position of the bubble
-        let bubbleX = midX + (yearRadius * Math.cos(angle)),
-            bubbleY = midY + (yearRadius * Math.sin(angle));
+        let bubbleX, bubbleY;
+        [bubbleX, bubbleY] = toScreenSpace(fromPolar([yearRadius, angle]), [midX, midY]);
 
         // BTC always in the centre...
         if(currency.code === btc.code) {
@@ -226,7 +456,7 @@
         }
 
         // Calculate the radius of the bubble based on the overall score
-        let bubbleRadius = bubbleScale(currency.overall);
+        let bubbleRadius = getBubbleRadius(currency);
 
         // Draw the white background of the bubble
         let background = svg.append('circle')
@@ -292,15 +522,15 @@
 
     function drawScoreArc(bubbleX, bubbleY, bubbleRadius, score, direction, klass)
     {
-        var arcLength = (Math.PI * score);
+        var arcLength = (halfCircle * score);
 
         arcLength = (direction == 'right') ? -arcLength : arcLength;
 
         let capArc = d3.arc()
             .innerRadius(0.85 * bubbleRadius)
             .outerRadius(bubbleRadius)
-            .startAngle(Math.PI)
-            .endAngle(Math.PI + arcLength);
+            .startAngle(halfCircle)
+            .endAngle(halfCircle + arcLength);
 
         let capArcPath = svg.append('path')
             .attr('d', capArc())
