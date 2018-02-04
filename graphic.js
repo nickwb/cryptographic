@@ -26,7 +26,7 @@
         3: [ 0.3, 0.55, 0.75 ]
     };
 
-    let layoutIterations = 5;
+    let layoutIterations = 10;
     let influenceRadius = maxBubble * 6;
     let adjustmentSpeed = 50, maxAdjustment = maxBubble;
     let clearZone = 0.1;
@@ -201,8 +201,6 @@
 
     function drawCategoryBubbles(cat)
     {
-        console.log(`Start: ${toDegrees(cat.startAngle)}, End: ${toDegrees(cat.endAngle)}`);
-
         // How much space do we have for this category?
         let sweep = cat.endAngle - cat.startAngle;
 
@@ -210,8 +208,6 @@
         let minAngle = cat.startAngle + (sweep * clearZone);
         let maxAngle = cat.endAngle - (sweep * clearZone);
         sweep = maxAngle - minAngle;
-
-        console.log(`Min: ${toDegrees(minAngle)}, Max: ${toDegrees(maxAngle)}`);
 
         let years = new Set();
         let edge = { isEdge: true };
@@ -237,8 +233,7 @@
         });
 
         for(i = 0; i < layoutIterations; i++) {
-            let learningRate = 1 - (i/layoutIterations);
-            console.log(`Learning Rate: ${learningRate}`);
+            let falloff = 1 - (i/layoutIterations);
             shove.forEach(x => {
                 // You can't move the edges, only the currencies
                 if(!x.thing.isEdge) {
@@ -260,8 +255,8 @@
                         force[0] = maxAdjustment;
                     }
 
-                    // Apply the learning rate
-                    force[0] = force[0] * learningRate;
+                    // Apply the falloff
+                    force[0] = force[0] * falloff;
 
                     x.step = fromPolar(force);
                 }
