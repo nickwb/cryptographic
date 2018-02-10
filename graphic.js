@@ -9,6 +9,9 @@
     // Mid-point of the canvas
     let canvasMidX = width / 2, canvasMidY = height / 2;
 
+    // Master margin
+    let margin = 10;
+
     // Currency bubble sizes
     let minBubble = 15, maxBubble = 50;
 
@@ -21,7 +24,7 @@
     let minRing = maxBubble*2, maxRing = (Math.min(width, height) / 2) - maxBubble;
 
     // Ring centre
-    let midX = maxRing + 110, midY = canvasMidY;
+    let midX = maxRing + (2*maxBubble) + margin, midY = canvasMidY;
 
     // Fixed rotation offset to give some clearance to the labels
     let yearClearance = Math.PI / 16, rotationOffset = yearClearance / 2;
@@ -78,6 +81,7 @@
                 .attr('height', height);
 
     function parseNumber(x) {
+        if(x === null || x === undefined) return 0;
         return Number(x.trim().replace(/,/g, ''));
     }
 
@@ -180,6 +184,9 @@
         for(let c in byCategory) {
             drawCategoryBubbles(byCategory[c]);            
         }
+
+        // Draw the title and legends
+        drawTitleAndLegends(data);
     }
 
     function drawCategoryArc(cat)
@@ -319,7 +326,7 @@
                     }
 
                     // Take the angle (but not the radius) from the end position
-                    x.setPolar(x.polar[0], angle);
+                    x.setPolar(yearScale(x.thing.year), angle);
                 }
             });
         }
@@ -329,11 +336,11 @@
             if(!x.thing.isEdge) {
                 console.log(`Final point: ${x.thing.code} ${toDegrees(x.polar[1])}`);
 
-                //let yearRadius = yearScale(currency.year);
+                let position = [ yearScale(x.thing.year), x.polar[1] ];
                 
                 // Calculate the position of the bubble
                 let bubbleX, bubbleY;
-                [bubbleX, bubbleY] = toScreenSpace(x.cartesian, [midX, midY]);
+                [bubbleX, bubbleY] = toScreenSpace(fromPolar(position), [midX, midY]);
 
                 drawBubble(x.thing, bubbleX, bubbleY);
             }
@@ -559,6 +566,66 @@
             .attr('d', capArc())
             .attr('transform', `translate(${bubbleX} ${bubbleY})`)
             .attr('class', klass);
+    }
+
+    function drawTitleAndLegends(data)
+    {
+        let y = margin;
+        let x = width - margin;
+
+        // Draw the main title
+        svg.append('text')
+            .text(`${data.length} Notable Cryptocurrencies`)
+            .attr('x', x)
+            .attr('y', y)
+            .attr('class', 'main-title');
+
+        y += 35;
+
+        // Draw the by line
+        svg.append('text')
+            .text(`A visualization by nickwb`)
+            .attr('x', x)
+            .attr('y', y)
+            .attr('class', 'by-line');        
+
+        y += 70;
+
+        // Draw an example bubble
+        let example = new Currency({ Code: 'CODE', Name: 'Name' });
+        example.capScore = 0.5;
+        example.volScore = 0.7;
+        example.overall = 0.7;
+
+        let radius = example.radius();
+        let bubbleX = x - radius - 50;
+        drawBubble(example, bubbleX, y + radius);
+
+        y += (radius * 2) + 10;
+
+        // Draw the bubble annotations
+        svg.append('text')
+            .text(`Relative market capitalization`)
+            .attr('x', bubbleX)
+            .attr('y', y)
+            .attr('class', 'legend-cap');
+
+        y += 18;
+
+        svg.append('text')
+            .text(`Relative trade volume (30 days)`)
+            .attr('x', bubbleX)
+            .attr('y', y)
+            .attr('class', 'legend-vol');
+
+        y = height - margin;
+
+        // Draw the cite line
+        svg.append('text')
+            .text(`Data sourced from coinmarketcap.com`)
+            .attr('x', x)
+            .attr('y', y)
+            .attr('class', 'cite-line');
     }
 
     d3.csv('data.csv', row => new Currency(row)).then(data => {
