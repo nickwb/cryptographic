@@ -74,6 +74,33 @@
     let adjustmentSpeed = 50, maxAdjustment = maxBubble;
     let clearZone = 0.1;
 
+    // Sort currencies different ways
+    function makeSorter(...fields)
+    {
+        return (a, b) => {
+            for(let i = 0; i < fields.length; i++) {
+                let f = fields[i];
+                if(a[f] === b[f]) continue;
+                return a[f] < b[f] ? -1 : 1;
+            }
+
+            return 0;
+        };
+    }
+
+    let sorter = {
+        age: makeSorter('year'),
+        cap: makeSorter('cap'),
+        vol: makeSorter('vol'),
+        categoryAndAge: makeSorter('category', 'year')
+    };
+
+    Array.prototype._orderBy = function(sorter) {
+        let clone = this.slice(0);
+        clone.sort(sorter);
+        return clone;
+    };
+
     // Insert the SVG element
     let svg = d3.select('#graphic')
                 .append('svg')
@@ -83,21 +110,11 @@
     function parseNumber(x) {
         if(x === null || x === undefined) return 0;
         return Number(x.trim().replace(/,/g, ''));
-    }
-
-    function sortCurrencies(a, b)
-    {
-        if(a.category !== b.category) {
-            return a.category < b.category ? -1 : 1;
-        }
-
-        if(a.year === b.year) return 0;
-        return (a.year < b.year) ? -1 : 1;
-    }
+    }    
 
     function enrichData(data)
     {
-        data.sort(sortCurrencies);
+        data.sort(sorter.categoryAndAge);
         
         // Maximum Total Market Cap and 30 Day Volume
         let maxCap = d3.max(data, x => x.cap);
@@ -145,7 +162,7 @@
     function drawGraphic(data)
     {
         // Single out bitcoin, because it's in the center and treated slightly different
-        origin = data.find(x => x.code === 'BTC');
+        origin = data._orderBy(sorter.age)[0];
 
         // Work out how many years we have
         setYears(data);
