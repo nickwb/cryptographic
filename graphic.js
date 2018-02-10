@@ -1,22 +1,41 @@
 (function(d3){
 
+    // Some radians
     let rightAngle = Math.PI / 2, halfCircle = Math.PI, fullCircle = Math.PI * 2;
 
     // Canvas size
     let width = 1200, height = 900;
 
     // Mid-point of the canvas
-    let midX = width / 2, midY = height / 2;
+    let canvasMidX = width / 2, canvasMidY = height / 2;
 
     // Currency bubble sizes
     let minBubble = 15, maxBubble = 50;
-    let minFont = 10, maxFont = 20;
+
+    // A scale to map overall score to a bubble size
+    let bubbleScale = d3.scaleLinear()
+        .domain([0, 1])
+        .range([minBubble, maxBubble]);
 
     // Year ring radius
     let minRing = maxBubble*2, maxRing = (Math.min(width, height) / 2) - maxBubble;
 
+    // Ring centre
+    let midX = maxRing + 110, midY = canvasMidY;
+
     // Fixed rotation offset to give some clearance to the labels
     let yearClearance = Math.PI / 16, rotationOffset = yearClearance / 2;
+
+    // The years and the year scale, to be set once the data is loaded
+    let years = null, yearScale = null;
+
+    // Currency font sizes
+    let minFont = 9, maxFont = 20;
+    
+    // Map the overall score to font size
+    let fontScale = d3.scaleLinear()
+        .domain([0, 1])
+        .range([minFont, maxFont]);
 
     // How is text positioned in the vertical axis
     // given the number of lines in the currency bubble
@@ -25,6 +44,27 @@
         2: [ 0.35, 0.6 ],
         3: [ 0.3, 0.55, 0.75 ]
     };
+
+    // The currency at the centre of the viz. BTC!
+    let origin = null;
+
+    class Currency {
+        constructor(row) {
+            this.code = row.Code;
+            this.name = row.Name;
+            this.year = +row.Inception;
+            this.category = row.Category;
+            this.type = row.Type;
+            this.cap = parseNumber(row['Market Cap']);
+            this.vol = parseNumber(row['30 Day Trade Volume']);
+            this.fork = row['Hard-Fork Of'];
+            this.similar = row['Similar To'];
+        }
+
+        radius() {
+            return bubbleScale(this.overall);
+        }
+    }
 
     let layoutIterations = 10;
     let influenceRadius = maxBubble * 6;
@@ -53,7 +93,6 @@
 
     function enrichData(data)
     {
-        // Sort currencies by age
         data.sort(sortCurrencies);
         
         // Maximum Total Market Cap and 30 Day Volume
@@ -87,19 +126,29 @@
         });
     }
 
-    let btc = null;
-    let yearScale = null;
-    let bubbleScale = null;
-    let textScale = null;
+    function setYears(data)
+    {
+        // How many distinct years are there?
+        years = [...new Set(data.filter(x => x.code !== origin.code).map(x => x.year))];
+        years.sort();
+
+        // Map the year to a ring radius
+        yearScale = d3.scaleLinear()
+            .domain([years[0], years[years.length - 1]])
+            .range([minRing, maxRing]);
+    }
 
     function drawGraphic(data)
     {
         // Single out bitcoin, because it's in the center and treated slightly different
-        btc = data.find(x => x.code === 'BTC');
+        origin = data.find(x => x.code === 'BTC');
+
+        // Work out how many years we have
+        setYears(data);
 
         // Group the currencies by category
         let byCategory = data.reduce((memo, val) => { 
-            if(val.code === btc.code) return memo;
+            if(val.code === origin.code) return memo;
             memo[val.category] = memo[val.category] || [];
             memo[val.category].push(val);
             return memo;
@@ -121,30 +170,11 @@
             angle = cat.endAngle;
         }
 
-        // How many distinct years are there?
-        let years = [...new Set(data.filter(x => x.code !== btc.code).map(x => x.year))];
-        years.sort();
-
-        // Map the year to a ring radius
-        yearScale = d3.scaleLinear()
-            .domain([years[0], years[years.length - 1]])
-            .range([minRing, maxRing]);
-
         // Draw the year rings and legend
         drawYears(years);
 
-        // Map the overall score to a bubble size
-        bubbleScale = d3.scaleLinear()
-            .domain([0, 1])
-            .range([minBubble, maxBubble]);
-
-        // Map the overall score to text size
-        textScale = d3.scaleLinear()
-            .domain([0, 1])
-            .range([minFont, maxFont]);
-
         // Draw the Bitcoin Bubble (ha!)
-        drawBubble(btc, 0);
+        drawBubble(origin, midX, midY);
         
         // Draw the bubbles within each category
         for(let c in byCategory) {
@@ -298,7 +328,14 @@
             // You can't move the edges, only the currencies
             if(!x.thing.isEdge) {
                 console.log(`Final point: ${x.thing.code} ${toDegrees(x.polar[1])}`);
-                drawBubble(x.thing, x.polar[1]);
+
+                //let yearRadius = yearScale(currency.year);
+                
+                // Calculate the position of the bubble
+                let bubbleX, bubbleY;
+                [bubbleX, bubbleY] = toScreenSpace(x.cartesian, [midX, midY]);
+
+                drawBubble(x.thing, bubbleX, bubbleY);
             }
         });
     }
@@ -374,7 +411,7 @@
                 throw 'This should never happen.';
             }
 
-            let sum = getBubbleRadius(this.thing) + getBubbleRadius(other.thing);
+            let sum = this.thing.radius() + other.thing.radius();
             return sum * sum;
         }
 
@@ -431,30 +468,14 @@
         return (a[0] * b[0]) + (a[1] * b[1]);
     }
 
-    function getBubbleRadius(currency) {
-        return bubbleScale(currency.overall);
-    }
-
     function toDegrees (angle) {
         return (angle * (180 / Math.PI)).toFixed(2);
       }
 
-    function drawBubble(currency, angle)
+    function drawBubble(currency, bubbleX, bubbleY)
     {
-        let yearRadius = yearScale(currency.year);
-        
-        // Calculate the position of the bubble
-        let bubbleX, bubbleY;
-        [bubbleX, bubbleY] = toScreenSpace(fromPolar([yearRadius, angle]), [midX, midY]);
-
-        // BTC always in the centre...
-        if(currency.code === btc.code) {
-            bubbleX = midX;
-            bubbleY = midY;
-        }
-
         // Calculate the radius of the bubble based on the overall score
-        let bubbleRadius = getBubbleRadius(currency);
+        let bubbleRadius = currency.radius();
 
         // Draw the white background of the bubble
         let background = svg.append('circle')
@@ -475,7 +496,7 @@
             .attr('class', 'c-outline');
         
         // Calculate the font size based on the overall score
-        let fontSize = textScale(currency.overall);
+        let fontSize = fontScale(currency.overall);
 
         // A scale for laying out lines of text vertically through the bubble
         // 0: Top of the bubble; 1: Bottom of the bubble.
@@ -540,19 +561,7 @@
             .attr('class', klass);
     }
 
-    d3.csv('data.csv', row => {
-        return {
-            code: row.Code,
-            name: row.Name,
-            year: +row.Inception,
-            category: row.Category,
-            type: row.Type,
-            cap: parseNumber(row['Market Cap']),
-            vol: parseNumber(row['30 Day Trade Volume']),
-            fork: row['Hard-Fork Of'],
-            similar: row['Similar To']
-        };
-    }).then(data => {
+    d3.csv('data.csv', row => new Currency(row)).then(data => {
         enrichData(data);
         drawGraphic(data);
     });
