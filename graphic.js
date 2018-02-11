@@ -4,7 +4,7 @@
     let rightAngle = Math.PI / 2, halfCircle = Math.PI, fullCircle = Math.PI * 2;
 
     // Canvas size
-    let width = 1200, height = 900;
+    let width = 1350, height = 900;
 
     // Mid-point of the canvas
     let canvasMidX = width / 2, canvasMidY = height / 2;
@@ -587,6 +587,14 @@
 
     function drawTitleAndLegends(data)
     {
+        // Draw the categories overlay
+        svg.append('image')
+            .attr('x', 0)
+            .attr('y', 0)
+            .attr('width', width)
+            .attr('height', height)
+            .attr('href', 'assets/category-overlay.png');
+
         let y = margin;
         let x = width - margin;
 
