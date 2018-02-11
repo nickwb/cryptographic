@@ -755,6 +755,15 @@
             .attr('x', bubbleX)
             .attr('y', y)
             .attr('class', 'key-vol');
+
+        y += 40;
+
+        // Draw the log scale note
+        svg.append('text')
+            .text('Relative metrics use a log scale.')
+            .attr('x', bubbleX)
+            .attr('y', y)
+            .attr('class', 'key-log');
     }
 
     function humaniseNumber(val) {
