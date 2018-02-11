@@ -4,7 +4,7 @@
     let rightAngle = Math.PI / 2, halfCircle = Math.PI, fullCircle = Math.PI * 2;
 
     // Canvas size
-    let width = 1350, height = 900;
+    let width = 1300, height = 900;
 
     // Mid-point of the canvas
     let canvasMidX = width / 2, canvasMidY = height / 2;
@@ -68,6 +68,10 @@
             return bubbleScale(this.overall);
         }
     }
+
+    // Legends
+    let topN = 5;
+
 
     let layoutIterations = 10;
     let influenceRadius = maxBubble * 6;
@@ -605,7 +609,7 @@
             .attr('y', y)
             .attr('class', 'main-title');
 
-        y += 35;
+        y += 40;
 
         // Draw the by line
         svg.append('text')
@@ -614,35 +618,48 @@
             .attr('y', y)
             .attr('class', 'by-line');        
 
-        y += 70;
-
-        // Draw an example bubble
-        let example = new Currency({ Code: 'CODE', Name: 'Name' });
-        example.capScore = 0.5;
-        example.volScore = 0.7;
-        example.overall = 0.7;
-
-        let radius = example.radius();
-        let bubbleX = x - radius - 50;
-        drawBubble(example, bubbleX, y + radius);
-
-        y += (radius * 2) + 10;
-
-        // Draw the bubble annotations
+        y += 120;
+        
+        // Draw the Top 5 by Market Cap
         svg.append('text')
-            .text(`Relative market capitalization`)
-            .attr('x', bubbleX)
+            .text(`Top ${topN} by Market Capitalisation`)
+            .attr('x', x)
             .attr('y', y)
-            .attr('class', 'legend-cap');
+            .attr('class', 'top-5-heading');
 
-        y += 18;
+        y += 30;
 
+        let byCap = data._orderBy(sorter.cap);
+        for(let i = 1; i <= topN; i++) {
+            let c = byCap[byCap.length - i];
+            drawTopItem(c, x, y, 'cap');
+            y+= 25;
+        }
+
+        y+= 80;
+
+        // Draw the Top 5 by Trade Volume
         svg.append('text')
-            .text(`Relative trade volume (30 days)`)
-            .attr('x', bubbleX)
+            .text(`Top ${topN} by 30 Day Trade Volume`)
+            .attr('x', x)
             .attr('y', y)
-            .attr('class', 'legend-vol');
+            .attr('class', 'top-5-heading');
 
+        y += 30;
+
+        let byVol = data._orderBy(sorter.vol);
+        for(let i = 1; i <= topN; i++) {
+            let c = byVol[byCap.length - i];
+            drawTopItem(c, x, y, 'vol');
+            y+= 25;
+        }
+
+        y+= 60;
+
+        // Draw the 'key' bubble
+        drawKey(x, y);
+
+        // Bottom of the graphic..
         y = height - margin;
 
         // Draw the cite line
@@ -651,6 +668,84 @@
             .attr('x', x)
             .attr('y', y)
             .attr('class', 'cite-line');
+    }
+
+    function drawTopItem(currency, x, y, type)
+    {
+        let fmt = d3.format(',');
+
+        svg.append('text')
+            .text(`${humaniseNumber(currency[type])}`)
+            .attr('x', x)
+            .attr('y', y)
+            .attr('class', 'top-5-item item-val');
+
+        svg.append('text')
+            .text(`USD`)
+            .attr('x', x - 80)
+            .attr('y', y)
+            .attr('class', `top-5-item item-usd-${type}`);
+
+        svg.append('text')
+            .text(`${currency.name}:`)
+            .attr('x', x - 130)
+            .attr('y', y)
+            .attr('class', 'top-5-item item-name');
+    }
+
+    function drawKey(x, y)
+    {
+        // Define the dummy bubble
+        let key = new Currency({ Code: 'CODE', Name: 'Name' });
+        key.capScore = 0.5;
+        key.volScore = 0.7;
+        key.overall = 0.8;
+
+        let radius = key.radius();
+        let bubbleX = x - radius - 80;
+
+        // Draw the 'Key' text
+        svg.append('text')
+            .text(`Key`)
+            .attr('x', bubbleX)
+            .attr('y', y)
+            .attr('class', 'key-title');
+
+        y += radius + 30;
+
+        // Draw the bubble
+        drawBubble(key, bubbleX, y);
+
+        y += radius + 15;
+
+        // Draw the annotations
+        svg.append('text')
+            .text(`Relative market capitalization`)
+            .attr('x', bubbleX)
+            .attr('y', y)
+            .attr('class', 'key-cap');
+
+        y += 20;
+
+        svg.append('text')
+            .text(`Relative trade volume (30 days)`)
+            .attr('x', bubbleX)
+            .attr('y', y)
+            .attr('class', 'key-vol');
+    }
+
+    function humaniseNumber(val) {
+        let factor = [1000000000000, 1000000000, 1000000, 1000];
+        let suffix = ['trillion', 'billion', 'million', 'thousand'];
+
+        for(let i = 0; i < factor.length; i++) {
+            let f = factor[i];
+            if(val >= f) {
+                return `${Math.round(val / f)} ${suffix[i]}`;
+            }
+        }
+
+        return val;
     }
 
     d3.csv('data.csv', row => new Currency(row)).then(data => {
