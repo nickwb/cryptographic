@@ -1,5 +1,8 @@
 (function(d3){
 
+    // Date on the chart
+    let when = 'February 11, 2018';
+
     // Some radians
     let rightAngle = Math.PI / 2, halfCircle = Math.PI, fullCircle = Math.PI * 2;
 
@@ -618,11 +621,11 @@
             .attr('y', y)
             .attr('class', 'by-line');        
 
-        y += 120;
+        y += 100;
         
         // Draw the Top 5 by Market Cap
         svg.append('text')
-            .text(`Top ${topN} by Market Capitalisation`)
+            .text(`Top ${topN} by Market Capitalization`)
             .attr('x', x)
             .attr('y', y)
             .attr('class', 'top-5-heading');
@@ -654,7 +657,7 @@
             y+= 25;
         }
 
-        y+= 60;
+        y+= 80;
 
         // Draw the 'key' bubble
         drawKey(x, y);
@@ -668,6 +671,26 @@
             .attr('x', x)
             .attr('y', y)
             .attr('class', 'cite-line');
+
+        // Left of the graphic
+        x = margin;
+
+        // Draw the github link
+        svg.append('text')
+            .text('github.com/nickwb/cryptographic')
+            .attr('x', x)
+            .attr('y', y)
+            .attr('class', 'github-line');
+
+        // Top of the graphic
+        y = margin;
+
+        // Draw the github link
+        svg.append('text')
+            .text(when)
+            .attr('x', x)
+            .attr('y', y)
+            .attr('class', 'date-line');
     }
 
     function drawTopItem(currency, x, y, type)
@@ -711,7 +734,7 @@
             .attr('y', y)
             .attr('class', 'key-title');
 
-        y += radius + 30;
+        y += radius + 10;
 
         // Draw the bubble
         drawBubble(key, bubbleX, y);
