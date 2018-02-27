@@ -308,12 +308,26 @@
 
     class ArrangementContext {
         constructor(category) {
-            this.minSlice = (Math.PI / 32);
+            this.minSlice = (Math.PI / 16);
+            this.start = category.startAngle;
+            this.end = category.endAngle;
             this.sweep = category.endAngle - category.startAngle;
             this.slices = Math.floor((this.sweep - this.minSlice*0.5) / this.minSlice);
             this.bubbles = category;
             this.count = category.length;
             this.offset = (0.5 * this.minSlice) + category.startAngle;
+            this.years = new Set(category.map(x => x.year));
+            this.fillYearMap();
+        }
+
+        fillYearMap() {
+            let map = {};
+            for(let i = 0; i < this.bubbles.length; i++) {
+                let year = this.bubbles[i].year;
+                map[year] = map[year] || [];
+                map[year].push(i);
+            }
+            this.yearMap = map;
         }
 
         angleAt(slice) {
@@ -325,6 +339,7 @@
         constructor(context) {
             this.context = context;
             this.angles = [];
+            this.lazyItem = {};
         }
 
         addAt(idx, angle) {
@@ -332,11 +347,92 @@
         }
 
         item(i) {
-            return new ArrangedItem(this, i, this.angles[i]);
+            this.lazyItem[i] = this.lazyItem[i] || new ArrangedItem(this, i, this.angles[i]);
+            return this.lazyItem[i];
         }
 
         score() {
-            return Math.random();
+            let radial = this.getRadialSpreadScore();
+            //let clearance = this.getSeparationScore();
+            //let radial = 0;
+            let clearance = 0;
+            return radial + (2 * clearance);
+        }
+
+        getRadialSpreadScore() {
+            let sweep = this.context.sweep;
+            let sweepError = (1 + sweep) * (1 + sweep);
+            let score = 0, maxScore = 0, error = 0;
+            for(let year of this.context.years) {
+                let ring = this.anglesInYear(year);
+                let n = 0, m = 0;
+                let distances = [];
+
+                for(let i = 1; i < ring.length; i++) {
+                    let move = ring[i] - ring[i - 1];
+                    n += move;
+                    m += 1;
+                    distances.push(move);
+                }
+
+                let avg = n/m;
+
+                for(let i = 1; i < distances.length; i++) {
+                    error = 1 * Math.abs(avg - distances[i]);
+                    score += error * error;
+                    maxScore += sweepError;
+                }
+
+                
+            }
+
+            if(score > maxScore) {
+                console.log('bad');
+            }
+
+            return 1 - (score / maxScore);
+        }
+
+        anglesInYear(year) {
+            let result = this.context.yearMap[year].map(x => this.angles[x]);
+            result.push(this.context.start);
+            result.push(this.context.end);
+            result.sort();
+            return result;
+        }
+
+        getSeparationScore() {
+            let maxScore = 0;
+            let score = 0;
+            for(let i = 0; i < this.context.count; i++) {
+                for(let j = i; j < this.context.count; j++) {
+                    if(i === j) continue;
+                    maxScore++;
+
+                    let a = this.item(i), b = this.item(j);
+                    let separation = this.getSeparation(a, b);
+
+                    if(separation > maxBubble) {
+                        score += 1;
+                    } else if (separation > minBubble) {
+                        score += 0.5;
+                    } else if (separation < 0) {
+                        maxScore += 10;
+                    }
+                }
+            }
+
+            if(score > maxScore) {
+                console.log('bad');
+            }
+
+            return score/maxScore;
+        }
+
+        getSeparation(a, b) {
+            let distance = a.distanceTo(b);
+            distance -= a.bubble().radius() + b.bubble().radius();
+            return distance;
         }
     }
 
@@ -359,6 +455,25 @@
                 (r * Math.cos(theta)),
                 (r * Math.sin(theta))
             ];
+        }
+
+        distanceTo(item) {
+            let r = yearScale(this.bubble().year);
+            let theta = this.angle;
+
+            let x1 = (r * Math.cos(theta));
+            let y1 = (r * Math.sin(theta));
+
+            r = yearScale(item.bubble().year);
+            theta = item.angle;
+
+            let x2 = (r * Math.cos(theta));
+            let y2 = (r * Math.sin(theta));
+
+            let x = x2 - x1;
+            let y = y2 - y1;
+
+            return Math.sqrt(x*x + y*y);
         }
     }
 
@@ -559,7 +674,7 @@
     // function toPolar(vect)
     // {
     //     return [
-    //         Math.sqrt(vect[0]*vect[0] + vect[1]*vect[1]),
+    //         vectorMagnitude(vect),
     //         Math.atan2(vect[1], vect[0])
     //     ];
     // }
@@ -577,15 +692,19 @@
     //     ];
     // }
 
+    function vectorMagnitude(vect) {
+        Math.sqrt(vect[0]*vect[0] + vect[1]*vect[1]);
+    }
+
     function vectorAdd(a, b)
     {
         return [a[0] + b[0], a[1] + b[1]];
     }
 
-    // function vectorMinus(a, b)
-    // {
-    //     return [a[0] - b[0], a[1] - b[1]];
-    // }
+    function vectorMinus(a, b)
+    {
+        return [a[0] - b[0], a[1] - b[1]];
+    }
 
     // function vectorMultiply(x, scalar)
     // {
@@ -597,9 +716,9 @@
     //     return (a[0] * b[0]) + (a[1] * b[1]);
     // }
 
-    // function toDegrees (angle) {
-    //     return (angle * (180 / Math.PI)).toFixed(2);
-    // }
+    function toDegrees (angle) {
+        return (angle * (180 / Math.PI)).toFixed(2);
+    }
 
     function drawBubble(currency, bubbleX, bubbleY)
     {
