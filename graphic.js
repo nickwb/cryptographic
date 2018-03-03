@@ -51,6 +51,14 @@
         3: [ 0.3, 0.55, 0.75 ]
     };
 
+    // Bubble arrangement
+    let minSlice = Math.PI / 16, halfSlice = minSlice / 2;
+    let basicSeparation = minBubble, goodSeparation = maxBubble;
+    let similarTether = maxBubble * 4;
+
+    // Legends
+    let topN = 5;
+
     // The currency at the centre of the viz. BTC!
     let origin = null;
 
@@ -63,23 +71,26 @@
             this.type = row.Type;
             this.cap = parseNumber(row['Market Cap']);
             this.vol = parseNumber(row['30 Day Trade Volume']);
-            this.fork = row['Hard-Fork Of'];
-            this.similar = row['Similar To'];
+            this.fork = Currency.getCode(row['Hard-Fork Of']);
+            this.similar = Currency.getSimilarMap(row['Similar To']);
+        }
+
+        static getCode(str) {
+            return String(str).trim().toUpperCase();
+        }
+
+        static getSimilarMap(str) {
+            let codes = String(str).split(/[^a-zA-Z]+/);
+            codes = codes.map(x => Currency.getCode(x)).filter(x => x.length > 0);
+            let similar = {};
+            codes.forEach(x => similar[x] = true);
+            return similar;
         }
 
         radius() {
             return bubbleScale(this.overall);
         }
     }
-
-    // Legends
-    let topN = 5;
-
-
-    let layoutIterations = 10;
-    let influenceRadius = maxBubble * 6;
-    let adjustmentSpeed = 50, maxAdjustment = maxBubble;
-    let clearZone = 0.1;
 
     // Sort currencies different ways
     function makeSorter(...fields)
@@ -264,10 +275,33 @@
             .attr('class', 'year-caption');
     }
 
+    function debugArrangement(ctx)
+    {
+        let center = [midX, midY];
+
+        for(let i = 0; i < ctx.slices; i++) {
+            let theta = ctx.angleAt(i);
+            for(let j = 0; j < years.length; j++) {
+                let r = yearScale(years[j]);
+
+                let pos = [ (r * Math.cos(theta)),  (r * Math.sin(theta)) ];
+                pos = toScreenSpace(pos, center);
+
+                svg.append('circle')
+                    .attr('cx', pos[0])
+                    .attr('cy', pos[1])
+                    .attr('r', 3)
+                    .attr('class', 'c-background');
+            }
+        }
+    }
+
     function drawCategoryBubbles(cat)
     {
         //return;
         let ctx = new ArrangementContext(cat);
+
+        debugArrangement(ctx);        
 
         let bestScore = 0;
         let bestArrangement = null;
@@ -308,14 +342,22 @@
 
     class ArrangementContext {
         constructor(category) {
-            this.minSlice = (Math.PI / 16);
             this.start = category.startAngle;
             this.end = category.endAngle;
             this.sweep = category.endAngle - category.startAngle;
-            this.slices = Math.floor((this.sweep - this.minSlice*0.5) / this.minSlice);
+
+            // How many slices can we fit in to thie category.
+            // Use an odd number, so we get central alignment
+            this.slices = Math.floor(this.sweep / minSlice);
+            this.slices = (this.slices % 2) == 0 ? this.slices - 1: this.slices;
+
+            let sliceSweep = this.slices * minSlice;
+
+            this.offset = (this.sweep - sliceSweep) * 0.5 + category.startAngle + halfSlice;
+            
             this.bubbles = category;
             this.count = category.length;
-            this.offset = (0.5 * this.minSlice) + category.startAngle;
+
             this.years = new Set(category.map(x => x.year));
             this.fillYearMap();
         }
@@ -331,7 +373,7 @@
         }
 
         angleAt(slice) {
-            return (slice * this.minSlice) + this.offset;
+            return (slice * minSlice) + this.offset;
         }
     }
 
@@ -353,9 +395,7 @@
 
         score() {
             let radial = this.getRadialSpreadScore();
-            //let clearance = this.getSeparationScore();
-            //let radial = 0;
-            let clearance = 0;
+            let clearance = this.getSeparationScore();
             return radial + (2 * clearance);
         }
 
@@ -407,16 +447,24 @@
             for(let i = 0; i < this.context.count; i++) {
                 for(let j = i; j < this.context.count; j++) {
                     if(i === j) continue;
-                    maxScore++;
 
                     let a = this.item(i), b = this.item(j);
                     let separation = this.getSeparation(a, b);
 
-                    if(separation > maxBubble) {
-                        score += 1;
-                    } else if (separation > minBubble) {
+                    maxScore += 1;
+                    
+                    if(a.isSimilarTo(b) && separation > basicSeparation && separation < similarTether) {
+                        // Full marks for similarity matching
+                        score += 1
+                    }
+                    if(separation > goodSeparation) {
+                        // Good marks for good separation
+                        score += 0.75;
+                    } else if (separation > basicSeparation) {
+                        // Part marks for a little separation
                         score += 0.5;
                     } else if (separation < 0) {
+                        // Severely penalise overlapping bubbles
                         maxScore += 10;
                     }
                 }
@@ -474,6 +522,19 @@
             let y = y2 - y1;
 
             return Math.sqrt(x*x + y*y);
+        }
+
+        isSimilarTo(item) {
+            let a = this.bubble(), b = item.bubble();
+            if(a.fork === b.code || b.fork === a.code) {
+                return true;
+            }
+
+            if(a.similar[b.code] || b.similar[a.code]) {
+                return true;
+            }
+
+            return false;
         }
     }
 
@@ -999,6 +1060,7 @@
 
     d3.csv('data.csv', row => new Currency(row)).then(data => {
         enrichData(data);
+        console.log(data);
         drawGraphic(data);
     });
 
