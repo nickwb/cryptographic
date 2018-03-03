@@ -1,7 +1,7 @@
 (function(d3){
 
     // Date on the chart
-    let when = 'February 11, 2018';
+    let when = 'March 3, 2018';
 
     // Some radians
     let rightAngle = Math.PI / 2, halfCircle = Math.PI, fullCircle = Math.PI * 2;

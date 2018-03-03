@@ -3,13 +3,13 @@ A cryptocurrency visualization. **[Click here to view.](http://todo.com)**
 
 
 ## Introduction
-It's an exciting time for cryptocurrency. As of February 2018, there are more than a thousand currencies in existence, with a combined [market capitalization](https://en.wikipedia.org/wiki/Market_capitalization) of over **USD $390 billion**.
+It's an exciting time for cryptocurrency. As of March 2018, there are more than a thousand currencies in existence, with a combined [market capitalization](https://en.wikipedia.org/wiki/Market_capitalization) of over **USD $465 billion**.
 
-For comparison, this is around half the size of *Apple Inc.*, the largest publicly-traded company in the world, valued by markets according to its $375 billion in assets and $230 billion in annual revenues.
+For comparison, this is a little more than half the size of *Apple Inc.*, the largest publicly-traded company in the world, valued by markets according to its $375 billion in assets and $230 billion in annual revenues.
 
 Just one year ago, this combined crypto market capitalization was less than $19 billion. Two years ago it was less than $8 billion. A lot of apparent wealth has been created in a very short space of time.
 
-The preeminent and original cryptocurrency, Bitcoin, has grown by ~2200% in that two year period. The remaining growth (~2700%) has come from the alternative currencies (altcoins), which now account for around two thirds of the total market.
+The preeminent and original cryptocurrency, Bitcoin, has grown by ~2200% in that two year period. The remaining growth (~2700%) has come from the alternative currencies (altcoins), which now account for around 60% of the total market.
 
 This visualization shows just 25 of these cryptocurrencies. It's a sample which shows all of the major currencies, plus some others of historical or technological significance. The 25 selected account for over 90% of the total market capitalization, and over 85% of the total trade volume.
 

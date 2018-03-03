@@ -1,26 +1,26 @@
 ﻿Code,Name,Inception,Category,Type,Market Cap,30 Day Trade Volume,Hard-Fork Of,Similar To
-BTC,Bitcoin,2009,,coin," 148,193,692,888 ","373,448,457,216",,
-ETH,Ethereum,2014,5_smart-contracts,coin," 89,206,119,323 ","155,878,543,872",,
-XRP,Ripple,2012,3_settlement,unmined-coin," 33,894,639,531 ","90,704,588,928",,
-BCH,Bitcoin Cash,2017,1_conventional,coin," 20,122,027,972 ","31,071,846,528",BTC,BCG
-ADA,Cardano,2017,5_smart-contracts,unmined-coin," 9,663,485,877 ","17,394,786,912",,NEO
-NEO,Neo,2017,5_smart-contracts,unmined-coin," 7,709,390,000 ","14,988,863,168",,ADA
-XLM,Stellar,2016,3_settlement,unmined-coin," 7,214,094,499 ","9,874,865,704",,
-LTC,Litecoin,2011,1_conventional,coin," 7,173,044,490 ","22,892,357,696",,DOGE
-EOS,EOS,2017,6_token,token,"6,189,362,245","38,840,916,576",,
-XEM,NEM,2015,1_conventional,unmined-coin," 5,194,079,999 ","2,862,932,476",,
-IOTA,IOTA,2015,1_conventional,unmined-coin," 4,983,058,505 ","4,064,511,908",,
-DASH,Dash,2014,2_privacy,coin," 4,640,544,603 ","4,600,079,760",,
-XMR,Monero,2014,2_privacy,coin," 3,753,764,225 ","4,982,431,912",,
-TRX,TRON,2017,6_token,token,"2,719,358,390","21,134,372,672",,
-ETC,Ethereum Classic,2016,5_smart-contracts,coin," 2,275,948,925 ","13,557,783,352",ETH,
-USDT,Tether,2015,3_settlement,token," 2,215,801,660 ","92,377,441,024",,
-QTUM,Qtum,2016,5_smart-contracts,unmined-coin," 2,167,494,717 ","23,498,241,120",,
-BCG,Bitcoin Gold,2017,1_conventional,coin," 1,816,265,962 ","8,174,951,632",BTC,BCH
-ZEC,Zcash,2016,2_privacy,coin," 1,214,200,204 ","4,592,566,872",,XZC
-SC,Siacoin,2015,4_overlay,coin," 861,281,056 ","3,381,221,442",,
-SNT,Status,2017,6_token,token,"811,770,451","9,060,595,366",,
-DOGE,Dogecoin,2013,1_conventional,coin," 505,877,391 ","2,011,507,837",,LTC
-XZC,Zcoin,2016,2_privacy,coin," 221,798,446 ","249,168,364",,ZEC
-NMC,Namecoin,2011,4_overlay,coin," 41,891,754 ","24,123,671",,
-OMNI,Omni,2014,5_smart-contracts,coin," 21,764,873 ","38,291,198",,
+BTC,Bitcoin,2009,,coin," 191,831,112,980 "," 234,462,548,992 ",,
+ETH,Ethereum,2014,5_smart-contracts,coin," 84,709,274,642 "," 80,244,242,816 ",,
+XRP,Ripple,2012,3_settlement,unmined-coin," 35,635,641,354 "," 35,204,038,336 ",,
+BCH,Bitcoin Cash,2017,1_conventional,coin," 21,741,060,468 "," 19,224,646,848 ",BTC,BCG
+LTC,Litecoin,2011,1_conventional,coin," 11,917,191,241 "," 28,685,499,008 ",,DOGE
+NEO,Neo,2017,5_smart-contracts,unmined-coin," 8,287,565,000 "," 8,437,841,760 ",,ADA
+ADA,Cardano,2017,5_smart-contracts,unmined-coin," 7,765,027,991 "," 11,929,034,968 ",,NEO
+XLM,Stellar,2016,3_settlement,unmined-coin," 5,959,457,541 "," 3,891,309,572 ",,
+EOS,EOS,2017,6_token,token,"5,765,834,980"," 12,669,116,256 ",,
+XMR,Monero,2014,2_privacy,coin," 5,564,127,135 "," 2,384,932,836 ",,
+IOTA,IOTA,2015,1_conventional,unmined-coin," 5,260,177,675 "," 1,574,149,204 ",,
+DASH,Dash,2014,2_privacy,coin," 4,806,483,683 "," 2,831,554,392 ",,
+XEM,NEM,2015,1_conventional,unmined-coin," 3,544,938,000 "," 1,401,253,538 ",,
+TRX,TRON,2017,6_token,token,"3,191,476,436"," 7,195,419,792 ",,
+ETC,Ethereum Classic,2016,5_smart-contracts,coin," 2,963,704,740 "," 17,306,261,856 ",ETH,
+USDT,Tether,2015,3_settlement,token," 2,214,770,690 "," 82,604,221,952 ",,
+QTUM,Qtum,2016,5_smart-contracts,unmined-coin," 1,926,982,232 "," 7,279,965,688 ",,
+BCG,Bitcoin Gold,2017,1_conventional,coin," 1,889,524,658 "," 1,479,722,816 ",BTC,BCH
+ZEC,Zcash,2016,2_privacy,coin," 1,341,205,579 "," 2,343,312,196 ",,XZC
+SC,Siacoin,2015,4_overlay,coin," 681,057,945 "," 580,938,125 ",,
+DOGE,Dogecoin,2013,1_conventional,coin," 635,089,064 "," 623,846,490 ",,LTC
+SNT,Status,2017,6_token,token,"542,377,618"," 5,807,986,906 ",,
+XZC,Zcoin,2016,2_privacy,coin," 239,831,909 "," 159,260,355 ",,ZEC
+NMC,Namecoin,2011,4_overlay,coin," 39,874,930 "," 5,993,816 ",,
+OMNI,Omni,2014,5_smart-contracts,coin," 26,458,732 "," 12,163,044 ",,
