@@ -52,9 +52,9 @@
     };
 
     // Bubble arrangement
-    let minSlice = Math.PI / 16, halfSlice = minSlice / 2;
-    let basicSeparation = minBubble, goodSeparation = maxBubble;
-    let similarTether = maxBubble * 4;
+    let minSlice = Math.PI / 25, halfSlice = minSlice / 2;
+    let basicSeparation = 10, goodSeparation = 40;
+    let similarTether = 100;
 
     // Legends
     let topN = 5;
@@ -89,6 +89,10 @@
 
         radius() {
             return bubbleScale(this.overall);
+        }
+
+        fromCentre() {
+            return yearScale(this.year);
         }
     }
 
@@ -275,33 +279,11 @@
             .attr('class', 'year-caption');
     }
 
-    function debugArrangement(ctx)
-    {
-        let center = [midX, midY];
-
-        for(let i = 0; i < ctx.slices; i++) {
-            let theta = ctx.angleAt(i);
-            for(let j = 0; j < years.length; j++) {
-                let r = yearScale(years[j]);
-
-                let pos = [ (r * Math.cos(theta)),  (r * Math.sin(theta)) ];
-                pos = toScreenSpace(pos, center);
-
-                svg.append('circle')
-                    .attr('cx', pos[0])
-                    .attr('cy', pos[1])
-                    .attr('r', 3)
-                    .attr('class', 'c-background');
-            }
-        }
-    }
-
     function drawCategoryBubbles(cat)
     {
-        //return;
         let ctx = new ArrangementContext(cat);
 
-        debugArrangement(ctx);        
+        //debugArrangement(ctx);        
 
         let bestScore = 0;
         let bestArrangement = null;
@@ -321,6 +303,27 @@
             let pos = item.position();
             pos = toScreenSpace(pos, mid);
             drawBubble(bubble, pos[0], pos[1]);
+        }
+    }
+
+    function debugArrangement(ctx)
+    {
+        let center = [midX, midY];
+
+        for(let i = 0; i < ctx.slices; i++) {
+            let theta = ctx.angleAt(i);
+            for(let j = 0; j < years.length; j++) {
+                let r = yearScale(years[j]);
+
+                let pos = [ (r * Math.cos(theta)),  (r * Math.sin(theta)) ];
+                pos = toScreenSpace(pos, center);
+
+                svg.append('circle')
+                    .attr('cx', pos[0])
+                    .attr('cy', pos[1])
+                    .attr('r', 3)
+                    .attr('class', 'c-background');
+            }
         }
     }
 
@@ -345,6 +348,7 @@
             this.start = category.startAngle;
             this.end = category.endAngle;
             this.sweep = category.endAngle - category.startAngle;
+            this.mid = this.start + (this.sweep / 2);
 
             // How many slices can we fit in to thie category.
             // Use an odd number, so we get central alignment
@@ -395,39 +399,38 @@
 
         score() {
             let radial = this.getRadialSpreadScore();
-            let clearance = this.getSeparationScore();
-            return radial + (2 * clearance);
+            let separation = this.getSeparationScore();
+            let edges = this.getEdgesScore();
+            let centroid = this.getCentroidScore();
+            return (radial) + (separation) + (edges) + (centroid);
         }
 
         getRadialSpreadScore() {
             let sweep = this.context.sweep;
-            let sweepError = (1 + sweep) * (1 + sweep);
+            let sweepError = (1 + sweep);
             let score = 0, maxScore = 0, error = 0;
             for(let year of this.context.years) {
-                let ring = this.anglesInYear(year);
-                let n = 0, m = 0;
+                let ringMembers = this.anglesInYear(year);
+                let avg = 0;
                 let distances = [];
 
-                for(let i = 1; i < ring.length; i++) {
-                    let move = ring[i] - ring[i - 1];
-                    n += move;
-                    m += 1;
+                for(let i = 1; i < ringMembers.length; i++) {
+                    let move = ringMembers[i] - ringMembers[i - 1];
+                    avg += move;
                     distances.push(move);
                 }
 
-                let avg = n/m;
+                avg = avg/(ringMembers.length - 1);
 
                 for(let i = 1; i < distances.length; i++) {
                     error = 1 * Math.abs(avg - distances[i]);
-                    score += error * error;
+                    score += error;
                     maxScore += sweepError;
                 }
-
-                
             }
 
-            if(score > maxScore) {
-                console.log('bad');
+            if(score < 0 || score > maxScore || Number.isNaN(score)) {
+                throw 'Unexpected radial score';
             }
 
             return 1 - (score / maxScore);
@@ -442,8 +445,7 @@
         }
 
         getSeparationScore() {
-            let maxScore = 0;
-            let score = 0;
+            let maxScore = 0, score = 0;
             for(let i = 0; i < this.context.count; i++) {
                 for(let j = i; j < this.context.count; j++) {
                     if(i === j) continue;
@@ -470,8 +472,8 @@
                 }
             }
 
-            if(score > maxScore) {
-                console.log('bad');
+            if(score < 0 || score > maxScore || Number.isNaN(score)) {
+                throw 'Unexpected separation score';
             }
 
             return score/maxScore;
@@ -481,6 +483,47 @@
             let distance = a.distanceTo(b);
             distance -= a.bubble().radius() + b.bubble().radius();
             return distance;
+        }
+
+        getEdgesScore() {
+            let score = 0;
+            for(let i = 0; i < this.context.count; i++) {
+                let clr = this.item(i).getWallClearance();
+                if(clr >= basicSeparation) {
+                    score += 1;
+                } else if (clr <= 0){
+                    //score += 0;
+                } else {
+                    score += (clr/basicSeparation);
+                }
+            }
+
+            score = score / this.context.count;
+
+            if(score < 0 || score > 1 || Number.isNaN(score)) {
+                throw 'Unexpected edges score';
+            }
+
+            return score;
+        }
+
+        getCentroidScore() {
+            let m = 0, n = 0;
+            for(let i = 0; i < this.context.count; i++) {
+                let item = this.item(i);
+                m += Math.abs(item.angle - this.context.mid);
+                n += item.bubble().radius();
+            }
+
+            let avg = m/n;
+            let score = avg / (this.context.sweep);
+            score = 1.0 - score;
+
+            if(score < 0 || score > 1 || Number.isNaN(score)) {
+                throw 'Unexpected centoid score';
+            }
+
+            return score;
         }
     }
 
@@ -496,7 +539,7 @@
         }
 
         position() {
-            let r = yearScale(this.bubble().year);
+            let r = this.bubble().fromCentre();
             let theta = this.angle;
 
             return [
@@ -506,13 +549,13 @@
         }
 
         distanceTo(item) {
-            let r = yearScale(this.bubble().year);
+            let r = this.bubble().fromCentre();
             let theta = this.angle;
 
             let x1 = (r * Math.cos(theta));
             let y1 = (r * Math.sin(theta));
 
-            r = yearScale(item.bubble().year);
+            r = item.bubble().fromCentre();
             theta = item.angle;
 
             let x2 = (r * Math.cos(theta));
@@ -536,249 +579,29 @@
 
             return false;
         }
+
+        getWallClearance() {
+            let clearanceAngle;
+            if(this.angle > this.parent.context.mid) {
+                clearanceAngle = this.parent.context.end - this.angle;
+            } else {
+                clearanceAngle = this.angle - this.parent.context.start;
+            }
+
+            let bubble = this.bubble();
+            let radius = bubble.fromCentre();
+
+            let angularSweep = (clearanceAngle / fullCircle) * (fullCircle * radius);
+            return angularSweep - bubble.radius();
+        }
     }
-
-    // function drawCategoryBubbles(cat)
-    // {
-    //     // How much space do we have for this category?
-    //     let sweep = cat.endAngle - cat.startAngle;
-
-    //     // Leave some space along the edge of the arc
-    //     let minAngle = cat.startAngle + (sweep * clearZone);
-    //     let maxAngle = cat.endAngle - (sweep * clearZone);
-    //     sweep = maxAngle - minAngle;
-
-    //     let midPoint = minAngle + 0.5 * sweep;
-
-    //     let years = new Set();
-    //     let layout = [];
-
-    //     // Choose some initial positions for the bubbles
-    //     let perBubble = sweep / cat.length;
-    //     let i = 0;
-
-    //     cat.forEach(currency => {
-    //         let radius = yearScale(currency.year);
-    //         let angle = minAngle + (i * perBubble) + (perBubble / 2);
-    //         layout.push(new Arrangeable(currency, radius, angle));
-
-    //         // If we haven't seen this year before, add an edge on the ring
-    //         if(!years.has(currency.year)) {
-    //             let leadingEdge = { isEdge: true, code: 'Leading Edge', criticalAngle: -midPoint }
-    //             layout.push(new Arrangeable(leadingEdge, radius, minAngle));
-
-    //             let trailingEdge = { isEdge: true, code: 'Trailing Edge', criticalAngle: midPoint }
-    //             layout.push(new Arrangeable(trailingEdge, radius, maxAngle));
-
-    //             years.add(currency.year);
-    //         }
-
-    //         i++;
-    //     });
-
-    //     for(i = 0; i < layoutIterations; i++) {
-    //         let falloff = 1 - (i/layoutIterations);
-    //         layout.forEach(x => {
-    //             // You can't move the edges, only the currencies
-    //             if(!x.thing.isEdge) {
-    //                 // We will only move the bubble forwards and backwards
-    //                 // perpendicular to its radial position
-    //                 let attack = fromPolar([1, x.polar[1] + rightAngle]);
-
-    //                 let force = [0, 0];
-    //                 layout.forEach(y => {
-    //                     // I can't exert a force on myself
-    //                     if(x.id !== y.id) {
-    //                         force = vectorAdd(force, y.pushOther(x, attack));
-    //                     }
-    //                 });
-
-    //                 // Clamp the maximum movement
-    //                 force = toPolar(force);
-    //                 if(force[0] > maxAdjustment) {
-    //                     force[0] = maxAdjustment;
-    //                 }
-
-    //                 // Apply the falloff
-    //                 force[0] = force[0] * falloff;
-
-    //                 x.step = fromPolar(force);
-    //             }
-    //         });
-
-    //         // Let all of the steps resolve, then apply the movement
-    //         layout.forEach(x => {
-    //             // You can't move the edges, only the currencies
-    //             if(!x.thing.isEdge) {
-    //                 // Apply the step movement to the current position
-    //                 let endPos = vectorAdd(x.step, x.cartesian);
-    //                 endPos = normalisePolar(toPolar(endPos));
-
-    //                 let angle = endPos[1];
-    //                 if(angle > maxAngle) {
-    //                     console.log(`Too far`);
-    //                     angle = maxAngle;
-    //                 } else if (angle < minAngle) {
-    //                     console.log(`Too short`);
-    //                     angle = minAngle;
-    //                 }
-
-    //                 // Take the angle (but not the radius) from the end position
-    //                 x.setPolar(yearScale(x.thing.year), angle);
-    //             }
-    //         });
-    //     }
-
-    //     layout.forEach(x => {
-    //         // You can't move the edges, only the currencies
-    //         if(!x.thing.isEdge) {
-    //             console.log(`Final point: ${x.thing.code} ${toDegrees(x.polar[1])}`);
-
-    //             let position = [ yearScale(x.thing.year), x.polar[1] ];
-                
-    //             // Calculate the position of the bubble
-    //             let bubbleX, bubbleY;
-    //             [bubbleX, bubbleY] = toScreenSpace(fromPolar(position), [midX, midY]);
-
-    //             drawBubble(x.thing, bubbleX, bubbleY);
-    //         }
-    //     });
-    // }
-
-    // class Arrangeable {
-    //     constructor(thing, radius, angle) {
-    //         this.id = Arrangeable.nextId++;
-    //         this.thing = thing;
-    //         this.setPolar(radius, angle);
-    //     }
-
-    //     setPolar(radius, angle) {
-    //         this.polar = [radius, angle];
-    //         this.cartesian = normalisePolar(fromPolar(this.polar));
-    //     }
-
-    //     pushOther(other, attack) {
-    //         // Ignore edges which are beyond the critical angle
-    //         if(this.thing.isEdge) {
-    //             let criticalAngle = this.thing.criticalAngle;
-
-    //             let shouldIgnore = (criticalAngle < 0 && other.polar[1] > -1 * criticalAngle)
-    //                             || (criticalAngle > 0 && other.polar[1] < criticalAngle);
-
-    //             if(shouldIgnore) {
-    //                 console.log(`${this.thing.code} ignored for ${other.thing.code}.`)
-    //                 return [0, 0];
-    //             }
-    //         }
-
-    //         // How far away is the other item
-    //         let dist = vectorMinus(other.cartesian, this.cartesian);
-    //         dist = toPolar(dist);
-
-    //         // Too far away
-    //         if(dist[0] > influenceRadius) {
-    //             return [0, 0];
-    //         }
-
-    //         // Clamp the minimum distance
-    //         if(dist[0] <= 1) {
-    //             dist[0] = 1;
-    //         }
-
-    //         let escape = this.getEscapeFactorFor(other);
-    //         escape = escape * adjustmentSpeed;
-
-    //         // Use inverse squared distance for the force
-    //         let push = [escape/(dist[0] * dist[0]),  dist[1]];
-    //         push = fromPolar(push);
-            
-    //         // Apply the force to the angle of attack
-    //         push = vectorMultiply(attack, vectorDot(push, attack));
-    //         push = toPolar(push);
-
-    //         // Clamp to minimum and maximum force
-    //         if(push[0] > maxAdjustment) {
-    //             push[0] = maxAdjustment;
-    //         } else if (push[0] < 1) {
-    //             push[0] = 1;
-    //         }
-
-    //         return fromPolar(push);
-    //     }
-
-    //     getEscapeFactorFor(other) {
-    //         // I'm an edge
-    //         if(this.thing.isEdge) {
-    //             return 0.5 * maxBubble * maxBubble;
-    //         }
-
-    //         if(other.thing.isEdge) {
-    //             throw 'This should never happen.';
-    //         }
-
-    //         let sum = this.thing.radius() + other.thing.radius();
-    //         return sum * sum;
-    //     }
-
-    // }
-
-    // Arrangeable.nextId = 1;
-
-    // function fromPolar(vect)
-    // {
-    //     return [
-    //         (vect[0] * Math.cos(vect[1])),
-    //         (vect[0] * Math.sin(vect[1]))
-    //     ];
-    // }
-
-    // function toPolar(vect)
-    // {
-    //     return [
-    //         vectorMagnitude(vect),
-    //         Math.atan2(vect[1], vect[0])
-    //     ];
-    // }
 
     function toScreenSpace(vect, midPoint)
     {
-        return vectorAdd(midPoint, [vect[0], -vect[1]]);
-    }
-
-    // function normalisePolar(vect)
-    // {
-    //     return [
-    //         vect[0],
-    //         vect[1] < 0 ? fullCircle + vect[1] : vect[1]
-    //     ];
-    // }
-
-    function vectorMagnitude(vect) {
-        Math.sqrt(vect[0]*vect[0] + vect[1]*vect[1]);
-    }
-
-    function vectorAdd(a, b)
-    {
-        return [a[0] + b[0], a[1] + b[1]];
-    }
-
-    function vectorMinus(a, b)
-    {
-        return [a[0] - b[0], a[1] - b[1]];
-    }
-
-    // function vectorMultiply(x, scalar)
-    // {
-    //     return [x[0] * scalar, x[1] * scalar];
-    // }
-
-    // function vectorDot(a, b)
-    // {
-    //     return (a[0] * b[0]) + (a[1] * b[1]);
-    // }
-
-    function toDegrees (angle) {
-        return (angle * (180 / Math.PI)).toFixed(2);
+        return [
+            vect[0] + midPoint[0],
+            midPoint[1] - vect[1]
+        ];
     }
 
     function drawBubble(currency, bubbleX, bubbleY)
