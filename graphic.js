@@ -357,7 +357,7 @@
             this.sweep = category.endAngle - category.startAngle;
             this.mid = this.start + (this.sweep / 2);
 
-            // How many slices can we fit in to thie category.
+            // How many slices can we fit in to this category.
             // Use an odd number, so we get central alignment
             this.slices = Math.floor(this.sweep / minSlice);
             this.slices = (this.slices % 2) == 0 ? this.slices - 1: this.slices;
@@ -393,18 +393,18 @@
     class Arrangement {
         constructor(context) {
             this.context = context;
-            this.angles = [];
+            this.angles = new Map();
             this.lazyItem = new Map();
         }
 
         addAt(idx, angle) {
-            this.angles.push(angle);
+            this.angles.set(idx, angle);
         }
 
         item(i) {
             let item = this.lazyItem.get(i);
             if(!item) {
-                item = new ArrangedItem(this, i, this.angles[i]);
+                item = new ArrangedItem(this, i, this.angles.get(i));
                 this.lazyItem.set(i, item);
             }
             return item;
@@ -450,7 +450,7 @@
         }
 
         anglesInYear(year) {
-            let result = this.context.yearMap.get(year).map(x => this.angles[x]);
+            let result = this.context.yearMap.get(year).map(x => this.angles.get(x));
             result.push(this.context.start);
             result.push(this.context.end);
             result.sort();
