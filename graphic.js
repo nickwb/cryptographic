@@ -73,6 +73,9 @@
             this.vol = parseNumber(row['30 Day Trade Volume']);
             this.fork = Currency.getCode(row['Hard-Fork Of']);
             this.similar = Currency.getSimilarMap(row['Similar To']);
+
+            this._radius = null;
+            this._fromCentre = null;
         }
 
         static getCode(str) {
@@ -88,11 +91,15 @@
         }
 
         radius() {
-            return bubbleScale(this.overall);
+            return (this._radius === null) 
+                ? (this._radius = bubbleScale(this.overall))
+                : this._radius; 
         }
 
         fromCentre() {
-            return yearScale(this.year);
+            return (this._fromCentre === null) 
+                ? (this._fromCentre = yearScale(this.year))
+                : this._fromCentre; 
         }
     }
 
@@ -363,15 +370,17 @@
             this.count = category.length;
 
             this.years = new Set(category.map(x => x.year));
+            this.yearMap = null;
             this.fillYearMap();
         }
 
         fillYearMap() {
-            let map = {};
+            let map = new Map();
             for(let i = 0; i < this.bubbles.length; i++) {
                 let year = this.bubbles[i].year;
-                map[year] = map[year] || [];
-                map[year].push(i);
+                let indices = map.has(year) ? map.get(year) : [];
+                indices.push(i);
+                map.set(year, indices); 
             }
             this.yearMap = map;
         }
@@ -385,7 +394,7 @@
         constructor(context) {
             this.context = context;
             this.angles = [];
-            this.lazyItem = {};
+            this.lazyItem = new Map();
         }
 
         addAt(idx, angle) {
@@ -393,8 +402,12 @@
         }
 
         item(i) {
-            this.lazyItem[i] = this.lazyItem[i] || new ArrangedItem(this, i, this.angles[i]);
-            return this.lazyItem[i];
+            let item = this.lazyItem.get(i);
+            if(!item) {
+                item = new ArrangedItem(this, i, this.angles[i]);
+                this.lazyItem.set(i, item);
+            }
+            return item;
         }
 
         score() {
@@ -429,15 +442,15 @@
                 }
             }
 
-            if(score < 0 || score > maxScore || Number.isNaN(score)) {
-                throw 'Unexpected radial score';
-            }
+            // if(score < 0 || score > maxScore || Number.isNaN(score)) {
+            //     throw 'Unexpected radial score';
+            // }
 
             return 1 - (score / maxScore);
         }
 
         anglesInYear(year) {
-            let result = this.context.yearMap[year].map(x => this.angles[x]);
+            let result = this.context.yearMap.get(year).map(x => this.angles[x]);
             result.push(this.context.start);
             result.push(this.context.end);
             result.sort();
@@ -472,9 +485,9 @@
                 }
             }
 
-            if(score < 0 || score > maxScore || Number.isNaN(score)) {
-                throw 'Unexpected separation score';
-            }
+            // if(score < 0 || score > maxScore || Number.isNaN(score)) {
+            //     throw 'Unexpected separation score';
+            // }
 
             return score/maxScore;
         }
@@ -500,9 +513,9 @@
 
             score = score / this.context.count;
 
-            if(score < 0 || score > 1 || Number.isNaN(score)) {
-                throw 'Unexpected edges score';
-            }
+            // if(score < 0 || score > 1 || Number.isNaN(score)) {
+            //     throw 'Unexpected edges score';
+            // }
 
             return score;
         }
@@ -519,9 +532,9 @@
             let score = avg / (this.context.sweep);
             score = 1.0 - score;
 
-            if(score < 0 || score > 1 || Number.isNaN(score)) {
-                throw 'Unexpected centoid score';
-            }
+            // if(score < 0 || score > 1 || Number.isNaN(score)) {
+            //     throw 'Unexpected centoid score';
+            // }
 
             return score;
         }
