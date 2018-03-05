@@ -1,9 +1,9 @@
 # cryptographic
-A cryptocurrency visualization. **[Click here to view.](http://todo.com)**
+A cryptocurrency visualization. **[Click here to view.](https://i.imgur.com/YGwn9n9.png)**
 
 
 ## Introduction
-It's an exciting time for cryptocurrency. As of March 2018, there are more than a thousand currencies in existence, with a combined [market capitalization](https://en.wikipedia.org/wiki/Market_capitalization) of over **USD $465 billion**.
+It's an exciting time for cryptocurrency. As of March 2018, there are more than a thousand currencies in existence, with a combined [market capitalization](https://en.wikipedia.org/wiki/Market_capitalization) of over **USD $460 billion**.
 
 For comparison, this is a little more than half the size of *Apple Inc.*, the largest publicly-traded company in the world, valued by markets according to its $375 billion in assets and $230 billion in annual revenues in 2017.
 
@@ -43,7 +43,7 @@ This visualization requires a somewhat modern browser to run. It uses some semi-
 It has been tested primarily in Chrome 64.0, and the official render was captured on Windows 10 using this browser. It does render on Firefox 58.0, though text rendering seems to be incorrect (no support for `alignment-baseline`?).
 
 # License and Attribution
-This source code, and the official render of the visualization are dedicated to the public domain. See [UNLICENSE](http://todo.com) for more information.
+This source code, and the official render of the visualization are dedicated to the public domain. See [UNLICENSE](https://github.com/nickwb/cryptographic/blob/master/UNLICENSE) for more information.
 
 You are welcome to publish the visualization in any form, you do not need to seek my permission. Remixes are both welcomed and encouraged. If you do publish or remix the visualization, get in touch, I'd love to hear from you.
 

@@ -1,7 +1,7 @@
 (function(d3){
 
     // Date on the chart
-    let when = 'March 3, 2018';
+    let when = 'March 5, 2018';
 
     // Some radians
     let rightAngle = Math.PI / 2, halfCircle = Math.PI, fullCircle = Math.PI * 2;
@@ -533,7 +533,7 @@
             score = 1.0 - score;
 
             // if(score < 0 || score > 1 || Number.isNaN(score)) {
-            //     throw 'Unexpected centoid score';
+            //     throw 'Unexpected centroid score';
             // }
 
             return score;
