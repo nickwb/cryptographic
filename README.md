@@ -13,7 +13,7 @@ The preeminent and original cryptocurrency, Bitcoin, has grown by ~2200% in that
 
 This visualization shows just 25 of these cryptocurrencies. It's a sample which shows all of the major currencies, plus some others of historical or technological significance. The 25 selected account for over 90% of the total market capitalization, and over 85% of the total trade volume.
 
-The aim of this visualization is to tell a story of the evolution of cryptocurrency. It shows the different directions the technology has gone, and which currencies have become dominant in this emerging landscape.
+The aim of this visualization is to tell a story of the evolution of cryptocurrency. It shows the different directions the technology has gone, and which currencies have grown to be dominant in this emerging landscape.
 
 Data for this visualization has been sourced from the excellent: [coinmarketcap.com](https://coinmarketcap.com/).
 
