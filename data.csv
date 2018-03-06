@@ -4,9 +4,9 @@ ETH,Ethereum,2014,5_smart-contracts,coin," 84,542,580,997 "," 75,514,409,344 ",,
 XRP,Ripple,2012,3_settlement,unmined-coin," 41,183,376,390 "," 32,413,210,864 ",,
 BCH,Bitcoin Cash,2017,1_conventional,coin," 21,754,149,641 "," 18,812,261,568 ",BTC,BCG
 LTC,Litecoin,2011,1_conventional,coin," 11,771,132,483 "," 28,142,153,088 ",,DOGE
-NEO,Neo,2017,5_smart-contracts,unmined-coin," 7,586,085,000 "," 8,095,726,112 ",,ADA
+NEO,Neo,2014,5_smart-contracts,unmined-coin," 7,586,085,000 "," 8,095,726,112 ",,ADA
 ADA,Cardano,2017,5_smart-contracts,unmined-coin," 7,684,861,489 "," 9,368,656,344 ",,NEO
-XLM,Stellar,2016,3_settlement,unmined-coin," 7,157,358,020 "," 3,419,360,608 ",,
+XLM,Stellar,2014,3_settlement,unmined-coin," 7,157,358,020 "," 3,419,360,608 ",,
 EOS,EOS,2017,6_token,token,"5,784,167,929"," 11,227,225,152 ",,
 XMR,Monero,2014,2_privacy,coin," 5,807,763,895 "," 2,483,692,392 ",,
 IOTA,IOTA,2015,1_conventional,unmined-coin," 5,205,420,928 "," 1,470,326,186 ",,
